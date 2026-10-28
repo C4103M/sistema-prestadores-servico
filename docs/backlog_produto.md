@@ -16,7 +16,7 @@
 ### Fundação & Banco de Dados
 - [x] **feat: Configurar projeto backend Spring Boot e frontend React com Tailwind**
 - [x] **feat: Configurar container PostgreSQL com Docker Compose**
-- [ ] **feat: Criar migration Flyway com schema das tabelas**
+- [x] ~~**feat: Criar migration Flyway com schema das tabelas**~~ *(Descartado: schema gerado automaticamente pelo JPA/Hibernate)*
 - [ ] **feat: Implementar models (entidades JPA) e repositories**
 
 ### Autenticação & Acesso (UC01)
