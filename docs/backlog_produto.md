@@ -36,25 +36,25 @@
 - [ ] **#14 feat: Criar tela de perfil com serviços e horários de atendimento**
 
 ### Descoberta & Agendamento (UC02, UC03, UC04)
-- [ ] **feat: Implementar busca de serviços e profissionais**
-- [ ] **feat: Implementar cálculo de horários livres no backend (HorarioService)**
-- [ ] **feat: Implementar criação de agendamento com validação de conflito e preço congelado**
-- [ ] **feat: Criar tela de busca e fluxo de novo agendamento no frontend**
+- [ ] **#15 feat: Implementar busca de serviços e profissionais**
+- [ ] **#16 feat: Implementar cálculo de horários livres no backend (HorarioService)**
+- [ ] **#17 feat: Implementar criação de agendamento com validação de conflito e preço congelado**
+- [ ] **#18 feat: Criar tela de busca e fluxo de novo agendamento no frontend**
 
 ### Gestão da Agenda & Ciclo de Vida (UC05, UC06, UC09, UC10, UC11)
-- [ ] **feat: Implementar cancelamento pelo cliente com antecedência mínima de 2h**
-- [ ] **feat: Implementar visualização da agenda do dia para o profissional**
-- [ ] **feat: Implementar ações do profissional (concluir atendimento e marcar falta)**
-- [ ] **feat: Criar telas de 'Meus Agendamentos' (cliente) e 'Agenda do Dia' (profissional)**
+- [ ] **#19 feat: Implementar cancelamento pelo cliente com antecedência mínima de 2h**
+- [ ] **#20 feat: Implementar visualização da agenda do dia para o profissional**
+- [ ] **#21 feat: Implementar ações do profissional (concluir atendimento e marcar falta)**
+- [ ] **#22 feat: Criar telas de 'Meus Agendamentos' (cliente) e 'Agenda do Dia' (profissional)**
 
 ### Dashboard (UC12)
-- [ ] **feat: Implementar métricas de faturamento do mês e atendimentos realizados**
-- [ ] **feat: Criar tela de dashboard simples para o profissional**
+- [ ] **#23 feat: Implementar métricas de faturamento do mês e atendimentos realizados**
+- [ ] **#24 feat: Criar tela de dashboard simples para o profissional**
 
 ---
 
 ## 3. Qualidade & Testes (test)
 
-- [ ] **test: Implementar testes unitários para cálculo de horários livres e conflitos**
-- [ ] **test: Implementar testes unitários para regras de cancelamento (2h) e transições de status**
-- [ ] **test: Implementar testes de integração para fluxo completo de agendamento**
+- [ ] **#25 test: Implementar testes unitários para cálculo de horários livres e conflitos**
+- [ ] **#26 test: Implementar testes unitários para regras de cancelamento (2h) e transições de status**
+- [ ] **#27 test: Implementar testes de integração para fluxo completo de agendamento**
