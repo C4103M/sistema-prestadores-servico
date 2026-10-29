@@ -2,32 +2,38 @@
 
 ## 1. Documentação (docs)
 
-- [x] **docs: Elaborar visão geral do escopo e requisitos do MVP**
-- [x] **docs: Criar diagrama de classes (modelo de objetos)**
-- [x] **docs: Criar diagrama de casos de uso (Slide 6)**
-- [x] **docs: Criar diagrama de sequência do agendamento com conflito**
-- [ ] **docs: Especificar rotas e contratos da API REST (Swagger/OpenAPI)**
-- [ ] **docs: Criar guia de execução e roteiro de testes (README)**
+- [x] **#1 docs: Elaborar visão geral do escopo e requisitos do MVP**
+- [x] **#2 docs: Criar diagrama de classes (modelo de objetos conceitual)**
+- [x] **#3 docs: Criar diagrama de casos de uso (Slide 6)**
+- [x] **#4 docs: Criar diagrama de sequência do agendamento com conflito**
+- [ ] **#30 docs: Especificar detalhadamente TODOS os casos de uso (UC01 a UC12) [Etapa 2]**
+- [ ] **#31 docs: Modelar diagrama de classes no Astah UML [Etapa 2]**
+- [ ] **#32 docs: Modelar diagrama de pacotes com arquitetura no Astah UML [Etapa 2]**
+- [ ] **#28 docs: Especificar rotas e contratos da API REST (Swagger/OpenAPI)**
+- [ ] **#29 docs: Criar guia de execução e roteiro de testes (README)**
 
 ---
 
 ## 2. Casos de Uso & Funcionalidades (feat)
 
 ### Fundação & Banco de Dados
-- [x] **feat: Configurar projeto backend Spring Boot e frontend React com Tailwind**
-- [x] **feat: Configurar container PostgreSQL com Docker Compose**
-- [x] ~~**feat: Criar migration Flyway com schema das tabelas**~~ *(Descartado: schema gerado automaticamente pelo JPA/Hibernate)*
-- [ ] **feat: Implementar models (entidades JPA) e repositories**
+- [x] **#5 feat: Configurar projeto backend Spring Boot e frontend React com Tailwind**
+- [x] **#6 feat: Configurar container PostgreSQL com Docker Compose**
+- [x] ~~**#7 feat: Criar migration Flyway com schema das tabelas**~~ *(Descartado: schema gerado automaticamente pelo JPA/Hibernate)*
+- [ ] **#8 feat: Implementar models (entidades JPA) e repositories [Sprint 2 / Etapa 2]**
+
+### Interface Principal & Protótipo
+- [ ] **#33 feat: Implementar Tela Principal do sistema no frontend [Sprint 2 / Etapa 2]**
 
 ### Autenticação & Acesso (UC01)
-- [ ] **feat: Implementar autenticação com JWT e Spring Security**
-- [ ] **feat: Implementar cadastro e login de Cliente e Profissional**
-- [ ] **feat: Criar telas de login e cadastro no frontend**
+- [ ] **#9 feat: Implementar autenticação com JWT e Spring Security**
+- [ ] **#10 feat: Implementar cadastro e login de Cliente e Profissional [Sprint 2 / Etapa 2]**
+- [ ] **#11 feat: Criar telas de login e cadastro no frontend [Sprint 2 / Etapa 2]**
 
 ### Catálogo & Disponibilidade (UC07, UC08)
-- [ ] **feat: Implementar CRUD de serviços do profissional**
-- [ ] **feat: Implementar configuração de disponibilidade semanal**
-- [ ] **feat: Criar tela de perfil com serviços e horários de atendimento**
+- [ ] **#12 feat: Implementar CRUD de serviços do profissional [Sprint 2 / Etapa 2]**
+- [ ] **#13 feat: Implementar configuração de disponibilidade semanal**
+- [ ] **#14 feat: Criar tela de perfil com serviços e horários de atendimento**
 
 ### Descoberta & Agendamento (UC02, UC03, UC04)
 - [ ] **feat: Implementar busca de serviços e profissionais**
