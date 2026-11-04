@@ -6,7 +6,7 @@
 - [x] **#2 docs: Criar diagrama de classes (modelo de objetos conceitual)**
 - [x] **#3 docs: Criar diagrama de casos de uso (Slide 6)**
 - [x] **#4 docs: Criar diagrama de sequência do agendamento com conflito**
-- [ ] **#30 docs: Especificar detalhadamente TODOS os casos de uso (UC01 a UC12) [Etapa 2]**
+- [x] **#30 docs: Especificar detalhadamente TODOS os casos de uso (UC01 a UC09, conforme o Astah) [Etapa 2]**
 - [ ] **#31 docs: Modelar diagrama de classes no Astah UML [Etapa 2]**
 - [ ] **#32 docs: Modelar diagrama de pacotes com arquitetura no Astah UML [Etapa 2]**
 - [ ] **#28 docs: Especificar rotas e contratos da API REST (Swagger/OpenAPI)**
@@ -23,7 +23,7 @@
 - [ ] **#8 feat: Implementar models (entidades JPA) e repositories [Sprint 2 / Etapa 2]**
 
 ### Interface Principal & Protótipo
-- [ ] **#33 feat: Implementar Tela Principal do sistema no frontend [Sprint 2 / Etapa 2]**
+- [x] **#33 feat: Implementar Tela Principal do sistema no frontend [Sprint 2 / Etapa 2]**
 
 ### Autenticação & Acesso (UC01)
 - [ ] **#9 feat: Implementar autenticação com JWT e Spring Security**

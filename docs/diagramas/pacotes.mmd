@@ -1,0 +1,34 @@
+flowchart LR
+    subgraph FE ["«subsystem» frontend (React + TypeScript)"]
+        direction TB
+        pages["<b>«package» pages</b><br/>HomePage · MeusAgendamentosPage<br/>ServicosPage · DisponibilidadePage<br/>AgendaPage · DashboardPage"]
+        components["<b>«package» components</b><br/>AppShell · PageHeader · StatusBadge<br/>ConfirmDialog · EmptyState"]
+        fservices["<b>«package» services</b><br/>storage · horarios · formato · mockData"]
+        types["<b>«package» types</b><br/>Servico · Agendamento · Disponibilidade"]
+        pages --> components
+        pages --> fservices
+        pages --> types
+        fservices --> types
+    end
+
+    subgraph BE ["«subsystem» backend (Spring Boot · com.agendamento)"]
+        direction TB
+        config["<b>«package» config</b><br/>SecurityConfig"]
+        controller["<b>«package» controller</b><br/>ServicoController · DisponibilidadeController<br/>AgendamentoController · DashboardController"]
+        dto["<b>«package» dto</b><br/>ServicoDTO · DisponibilidadeDTO<br/>AgendamentoRequestDTO · AgendamentoResponseDTO · DashboardDTO"]
+        service["<b>«package» service</b><br/>ServicoService · DisponibilidadeService<br/>AgendamentoService"]
+        repository["<b>«package» repository</b><br/>UsuarioRepository · ClienteRepository · ProfissionalRepository<br/>ServicoRepository · DisponibilidadeRepository · AgendamentoRepository"]
+        model["<b>«package» model</b><br/>Usuario · Cliente · Profissional · Servico<br/>Disponibilidade · Agendamento · StatusAgendamento"]
+        config -.-> controller
+        controller --> service
+        controller --> dto
+        service --> repository
+        service --> model
+        service --> dto
+        repository --> model
+    end
+
+    db[("PostgreSQL 16")]
+
+    fservices -- "HTTP · JSON (/api/*)" --> controller
+    repository -- "JPA / Hibernate" --> db

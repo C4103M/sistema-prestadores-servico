@@ -1,40 +1,37 @@
-# Diagrama de Casos de Uso (Slide 6)
+# Diagrama de Casos de Uso
+
+Espelha o diagrama do Astah (`Projeto_Agenda.asta`, pacote `1.Analise › Modelo de Casos de Uso`). A especificação de cada caso de uso está em [especificacao_casos_de_uso.md](especificacao_casos_de_uso.md).
+
+> Fonte: [`diagramas/casos_de_uso.mmd`](diagramas/casos_de_uso.mmd)
+
+![Diagrama de casos de uso](diagramas/casos_de_uso.png)
 
 ```mermaid
 flowchart LR
-    subgraph Atores
-        Cliente(("fa:fa-user Cliente"))
-        Profissional(("fa:fa-briefcase Profissional"))
-    end
+    Cliente(["Cliente"])
+    Profissional(["Profissional"])
 
     subgraph Sistema ["Sistema de Agendamento"]
-        UC01["UC01: Cadastrar e Autenticar"]
-        UC02["UC02: Pesquisar Serviços/Profissionais"]
-        UC03["UC03: Consultar Horários Livres"]
-        UC04["UC04: Realizar Agendamento"]
-        UC05["UC05: Acompanhar Agendamentos"]
-        UC06["UC06: Cancelar Agendamento (mín. 2h)"]
-
-        UC07["UC07: Gerenciar Serviços (Criar/Editar)"]
-        UC08["UC08: Configurar Disponibilidade Semanal"]
-        UC09["UC09: Visualizar Agenda do Dia"]
-        UC10["UC10: Concluir Atendimento"]
-        UC11["UC11: Registrar Falta"]
-        UC12["UC12: Visualizar Dashboard (Faturamento e Atendimentos)"]
+        UC01(["UC01 Cadastrar-se"])
+        UC02(["UC02 Agendar atendimento"])
+        UC03(["UC03 Consultar meus Agendamentos"])
+        UC04(["UC04 Cancelar Agendamento"])
+        UC05(["UC05 Manter serviço"])
+        UC06(["UC06 Manter disponibilidade"])
+        UC07(["UC07 Consultar agenda"])
+        UC08(["UC08 Atualizar Status do agendamento"])
+        UC09(["UC09 Ver dashboard"])
     end
 
-    Cliente --> UC01
-    Cliente --> UC02
-    Cliente --> UC03
-    Cliente --> UC04
-    Cliente --> UC05
-    Cliente --> UC06
+    Cliente --- UC01
+    Cliente --- UC02
+    Cliente --- UC03
+    Cliente --- UC04
 
-    Profissional --> UC01
-    Profissional --> UC07
-    Profissional --> UC08
-    Profissional --> UC09
-    Profissional --> UC10
-    Profissional --> UC11
-    Profissional --> UC12
+    UC01 --- Profissional
+    UC05 --- Profissional
+    UC06 --- Profissional
+    UC07 --- Profissional
+    UC08 --- Profissional
+    UC09 --- Profissional
 ```
