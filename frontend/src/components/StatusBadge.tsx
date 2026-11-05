@@ -12,7 +12,7 @@ const ESTILO: Record<StatusAgendamento, { rotulo: string; classe: string; Icone:
 export function StatusBadge({ status, compacto = false }: { status: StatusAgendamento; compacto?: boolean }) {
   const { rotulo, classe, Icone } = ESTILO[status];
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${classe}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full border-current px-2 py-0.5 text-xs font-bold ${classe}`}>
       <Icone className="size-3.5" aria-hidden />
       <span className={compacto ? 'sr-only sm:not-sr-only' : ''}>{rotulo}</span>
     </span>

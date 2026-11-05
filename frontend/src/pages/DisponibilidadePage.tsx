@@ -88,15 +88,15 @@ export function DisponibilidadePage({ disponibilidades, onSalvar, onExcluir }: D
           return (
             <li key={valor} className="p-4 sm:px-5">
               <div className="grid gap-3 md:grid-cols-[9rem_minmax(0,1fr)_auto] md:items-center md:gap-5">
-                <p className="font-semibold">{nome}</p>
+                <p className=" text-lg font-bold">{nome}</p>
 
-                <div className="min-w-0 space-y-2">
+                <div className="min-w-0 space-y-2.5">
                   {/* Régua do dia com as faixas desenhadas */}
-                  <div className="relative h-2 rounded-full bg-paper" aria-hidden>
+                  <div className="relative h-3.5 rounded-md border border-rule-strong bg-paper" aria-hidden>
                     {faixas.map((f) => (
                       <span
                         key={f.id}
-                        className={`absolute inset-y-0 rounded-full ${edicao?.id === f.id ? 'bg-marker' : 'bg-ink'}`}
+                        className={`absolute inset-y-0 ${edicao?.id === f.id ? 'bg-marker' : 'bg-ink'}`}
                         style={{ left: `${pct(paraMinutos(f.horaInicio))}%`, width: `${pct(paraMinutos(f.horaFim)) - pct(paraMinutos(f.horaInicio))}%` }}
                       />
                     ))}
@@ -104,9 +104,9 @@ export function DisponibilidadePage({ disponibilidades, onSalvar, onExcluir }: D
                   {faixas.length === 0 ? (
                     <p className="text-sm text-muted">Não atende</p>
                   ) : (
-                    <ul className="flex flex-wrap gap-1.5">
+                    <ul className="flex flex-wrap gap-2">
                       {faixas.map((f) => (
-                        <li key={f.id} className="tabular flex items-center rounded-md border border-rule bg-surface pl-2.5 text-sm font-semibold">
+                        <li key={f.id} className="tabular flex items-center rounded-lg border border-rule-strong bg-surface pl-2.5 text-[0.8125rem] font-bold">
                           {f.horaInicio}–{f.horaFim}
                           <button type="button" className="btn btn-ghost btn-icon ml-1 size-7" aria-label={`Editar faixa ${f.horaInicio} a ${f.horaFim} de ${nome}`} onClick={() => abrir(valor, f)}>
                             <Pencil className="size-3.5" aria-hidden />
@@ -128,7 +128,7 @@ export function DisponibilidadePage({ disponibilidades, onSalvar, onExcluir }: D
 
               {editandoAqui && edicao && (
                 <form onSubmit={salvar} className="mt-4 rounded-lg bg-marker-soft p-4 md:ml-[10.25rem]">
-                  <p className="mb-3 text-sm font-semibold">{edicao.id ? 'Editar faixa' : 'Nova faixa'} · {nome}</p>
+                  <p className="mb-3 font-bold">{edicao.id ? 'Editar faixa' : 'Nova faixa'} · {nome}</p>
                   <div className="flex flex-wrap items-end gap-3">
                     <div>
                       <label className="label" htmlFor="faixa-inicio">Das</label>

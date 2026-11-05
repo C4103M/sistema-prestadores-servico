@@ -114,11 +114,11 @@ function Linha({ agendamento: a, children }: { agendamento: Agendamento; childre
         <span className="text-xs text-muted uppercase">
           {inicio.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}
         </span>
-        <span className="text-xl leading-tight font-bold">{inicio.getDate()}</span>
+        <span className=" text-2xl leading-tight font-bold">{inicio.getDate()}</span>
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="font-semibold">{a.servicoNome}</h3>
+          <h3 className="text-lg font-bold">{a.servicoNome}</h3>
           <StatusBadge status={a.status} />
         </div>
         <p className="tabular mt-0.5 text-sm text-muted">
@@ -127,7 +127,7 @@ function Linha({ agendamento: a, children }: { agendamento: Agendamento; childre
         </p>
       </div>
       <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end sm:gap-1.5">
-        <span className="tabular font-bold">{moeda(a.precoCobrado)}</span>
+        <span className="tabular font-bold">{moeda(a.preco)}</span>
         {children}
       </div>
     </li>

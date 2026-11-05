@@ -97,7 +97,7 @@ export function gerarAgendamentos(hoje = new Date()): Agendamento[] {
       servicoNome: s.nome,
       dataHoraInicio: inicio.toISOString(),
       dataHoraFim: fim.toISOString(),
-      precoCobrado: s.preco,
+      preco: s.preco,
       status,
       criadoEm: new Date(inicio.getTime() - 3 * 86400000).toISOString(),
     });
@@ -141,6 +141,24 @@ export function gerarAgendamentos(hoje = new Date()): Agendamento[] {
       const clienteId = 2 + ((i + offset + 30) % 5);
       const status: StatusAgendamento = chave === 9 ? 'FALTOU' : chave === 4 ? 'CANCELADO' : 'CONCLUIDO';
       marcar(d, h, servicoId, clienteId, status);
+    });
+  }
+  // Histórico dos outros profissionais, para o dashboard da administração
+  const outros: [number, string[]][] = [
+    [4, ['10:00', '14:00']],
+    [5, ['11:30', '16:00']],
+    [6, ['08:30', '13:00']],
+    [7, ['10:30', '15:00']],
+  ];
+  for (let offset = -1; offset >= -28; offset--) {
+    const d = dia(offset);
+    outros.forEach(([servicoId, horas], i) => {
+      horas.forEach((h, j) => {
+        const chave = (offset * 5 + i * 11 + j * 7 + 200) % 9;
+        if (chave < 5) return;
+        const status: StatusAgendamento = chave === 8 ? 'FALTOU' : 'CONCLUIDO';
+        marcar(d, h, servicoId, 1 + ((i + j - offset) % 6), status);
+      });
     });
   }
   marcar(dia(-6), '18:00', 2, 1, 'CONCLUIDO');

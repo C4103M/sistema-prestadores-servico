@@ -6,6 +6,7 @@ import { EmptyState } from '../components/EmptyState';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { duracao, moeda } from '../services/formato';
 import { PROFISSIONAL_LOGADO_ID, mockProfissionais } from '../services/mockData';
+import type { Area } from '../types';
 
 interface ServicosPageProps {
   servicos: Servico[];
@@ -13,11 +14,14 @@ interface ServicosPageProps {
   onSalvar: (servico: Servico) => void;
   onExcluir: (id: number) => void;
   onAlternarAtivo: (id: number) => void;
+  /** PROFISSIONAL vê e edita só os próprios serviços; ADMIN vê e edita os de todos. */
+  area: Extract<Area, 'profissional' | 'admin'>;
 }
 
 const CATEGORIAS = ['Barbearia', 'Estética', 'Elétrica', 'Outros'];
 
 interface Formulario {
+  profissionalId: string;
   nome: string;
   categoria: string;
   descricao: string;
@@ -25,7 +29,7 @@ interface Formulario {
   preco: string;
 }
 
-const VAZIO: Formulario = { nome: '', categoria: 'Barbearia', descricao: '', duracaoMinutos: '45', preco: '' };
+const VAZIO: Formulario = { profissionalId: String(PROFISSIONAL_LOGADO_ID), nome: '', categoria: 'Barbearia', descricao: '', duracaoMinutos: '45', preco: '' };
 
 type Erros = Partial<Record<keyof Formulario, string>>;
 
@@ -39,7 +43,9 @@ function validar(f: Formulario): Erros {
   return erros;
 }
 
-export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAlternarAtivo }: ServicosPageProps) {
+export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAlternarAtivo, area }: ServicosPageProps) {
+  const admin = area === 'admin';
+  const [filtroProf, setFiltroProf] = useState('todos');
   // null = formulário fechado; 'novo' = cadastro; número = edição
   const [editando, setEditando] = useState<'novo' | number | null>(null);
   const [form, setForm] = useState<Formulario>(VAZIO);
@@ -47,8 +53,9 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
   const [excluindo, setExcluindo] = useState<Servico | null>(null);
   const [aviso, setAviso] = useState('');
 
-  const meus = servicos.filter((s) => s.profissionalId === PROFISSIONAL_LOGADO_ID);
-  const profissional = mockProfissionais.find((p) => p.id === PROFISSIONAL_LOGADO_ID)!;
+  const meus = admin
+    ? servicos.filter((s) => filtroProf === 'todos' || s.profissionalId === Number(filtroProf))
+    : servicos.filter((s) => s.profissionalId === PROFISSIONAL_LOGADO_ID);
 
   const abrirNovo = () => {
     setEditando('novo');
@@ -59,6 +66,7 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
   const abrirEdicao = (s: Servico) => {
     setEditando(s.id);
     setForm({
+      profissionalId: String(s.profissionalId),
       nome: s.nome,
       categoria: s.categoria,
       descricao: s.descricao,
@@ -74,7 +82,8 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
     setErros(encontrados);
     if (Object.keys(encontrados).length > 0) return;
 
-    const existente = typeof editando === 'number' ? meus.find((s) => s.id === editando) : undefined;
+    const existente = typeof editando === 'number' ? servicos.find((s) => s.id === editando) : undefined;
+    const profissional = mockProfissionais.find((p) => p.id === Number(form.profissionalId))!;
     onSalvar({
       id: existente?.id ?? Date.now(),
       nome: form.nome.trim(),
@@ -110,8 +119,12 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
   return (
     <div className="space-y-8">
       <PageHeader
-        titulo="Serviços"
-        descricao="O que você oferece, quanto tempo leva e quanto custa. Serviços inativos não aparecem para os clientes."
+        titulo={admin ? 'Serviços da plataforma' : 'Serviços'}
+        descricao={
+          admin
+            ? 'Catálogo de todos os profissionais. Desative o que não deve aparecer para os clientes.'
+            : 'O que você oferece, quanto tempo leva e quanto custa. Serviços inativos não aparecem para os clientes.'
+        }
         acoes={
           <button type="button" className="btn btn-primary" onClick={abrirNovo}>
             <Plus className="size-4" aria-hidden />
@@ -121,7 +134,7 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
       />
 
       {aviso && (
-        <p role="status" className="flex items-center justify-between rounded-lg bg-concluido-soft px-4 py-3 text-sm font-medium text-concluido">
+        <p role="status" className="flex items-center justify-between rounded-lg bg-concluido-soft px-4 py-3 text-sm font-semibold text-concluido">
           {aviso}
           <button type="button" className="btn btn-ghost btn-icon -my-1 -mr-2" aria-label="Fechar aviso" onClick={() => setAviso('')}>
             <X className="size-4" aria-hidden />
@@ -130,11 +143,30 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
       )}
 
       <div className={`grid gap-6 ${editando !== null ? 'xl:grid-cols-[minmax(0,1fr)_360px]' : ''} xl:items-start`}>
-        <section aria-label="Lista de serviços" className="min-w-0">
+        <section aria-label="Lista de serviços" className="min-w-0 space-y-4">
+          {admin && (
+            <div className="flex flex-wrap items-center gap-3">
+              <label htmlFor="filtro-profissional" className="text-sm font-semibold">Profissional</label>
+              <select
+                id="filtro-profissional"
+                className="input h-9 w-auto min-w-56"
+                value={filtroProf}
+                onChange={(e) => setFiltroProf(e.target.value)}
+              >
+                <option value="todos">Todos</option>
+                {mockProfissionais.map((p) => (
+                  <option key={p.id} value={p.id}>{p.nome}</option>
+                ))}
+              </select>
+              <span className="text-sm text-muted tabular-nums">
+                {meus.length === 1 ? '1 serviço' : `${meus.length} serviços`}
+              </span>
+            </div>
+          )}
           {meus.length === 0 ? (
             <EmptyState
-              titulo="Nenhum serviço cadastrado"
-              texto="Cadastre o primeiro serviço para que os clientes possam agendar com você."
+              titulo={admin && filtroProf !== 'todos' ? 'Este profissional não tem serviços' : 'Nenhum serviço cadastrado'}
+              texto={admin ? 'Cadastre um serviço e escolha o profissional que vai atendê-lo.' : 'Cadastre o primeiro serviço para que os clientes possam agendar com você.'}
               acao={
                 <button type="button" className="btn btn-primary" onClick={abrirNovo}>
                   Cadastrar serviço
@@ -147,6 +179,7 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
                 <thead>
                   <tr className="border-b border-rule text-xs text-muted">
                     <th scope="col" className="px-5 py-3 font-semibold">Serviço</th>
+                    {admin && <th scope="col" className="px-3 py-3 font-semibold">Profissional</th>}
                     <th scope="col" className="px-3 py-3 font-semibold">Duração</th>
                     <th scope="col" className="px-3 py-3 text-right font-semibold">Preço</th>
                     <th scope="col" className="px-3 py-3 font-semibold">Situação</th>
@@ -155,11 +188,12 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
                 </thead>
                 <tbody className="divide-y divide-rule">
                   {meus.map((s) => (
-                    <tr key={s.id} className={editando === s.id ? 'bg-marker-soft' : 'hover:bg-paper'}>
+                    <tr key={s.id} className={`transition-colors duration-150 ${editando === s.id ? 'bg-marker-soft' : 'hover:bg-paper'}`}>
                       <td className="px-5 py-3.5">
-                        <p className={`font-semibold ${s.ativo ? '' : 'text-muted'}`}>{s.nome}</p>
+                        <p className={`font-semibold ${s.ativo ? '' : 'text-muted line-through'}`}>{s.nome}</p>
                         <p className="text-xs text-muted">{s.categoria}</p>
                       </td>
+                      {admin && <td className="px-3 py-3.5 text-muted">{s.profissionalNome}</td>}
                       <td className="tabular px-3 py-3.5 text-muted">{duracao(s.duracaoMinutos)}</td>
                       <td className="tabular px-3 py-3.5 text-right font-semibold">{moeda(s.preco)}</td>
                       <td className="px-3 py-3.5">
@@ -173,7 +207,7 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
                           />
                           <span
                             aria-hidden
-                            className="relative h-5 w-9 rounded-full bg-rule-strong transition-colors duration-150 peer-checked:bg-concluido peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-agendado after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-white after:transition-transform after:duration-150 peer-checked:after:translate-x-4"
+                            className="relative h-6 w-11 rounded-full bg-rule-strong transition-colors duration-150 peer-checked:bg-concluido peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-marker after:absolute after:top-0.5 after:left-0.5 after:size-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform after:duration-150 peer-checked:after:translate-x-5"
                           />
                           <span className="text-xs font-medium text-muted">{s.ativo ? 'Ativo' : 'Inativo'}</span>
                         </label>
@@ -199,7 +233,7 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
         {editando !== null && (
           <form onSubmit={salvar} noValidate className="painel xl:sticky xl:top-10" aria-labelledby="titulo-form-servico">
             <div className="flex items-center justify-between border-b border-rule px-5 py-4">
-              <h2 id="titulo-form-servico" className="font-bold">
+              <h2 id="titulo-form-servico" className="text-lg font-bold">
                 {editando === 'novo' ? 'Novo serviço' : 'Editar serviço'}
               </h2>
               <button type="button" className="btn btn-ghost btn-icon -mr-2" aria-label="Fechar formulário" onClick={() => setEditando(null)}>
@@ -207,6 +241,16 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
               </button>
             </div>
             <div className="space-y-4 p-5">
+              {admin && (
+                <div>
+                  <label className="label" htmlFor="servico-profissionalId">Profissional</label>
+                  <select className="input" {...campo('profissionalId')}>
+                    {mockProfissionais.map((p) => (
+                      <option key={p.id} value={p.id}>{p.nome}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="label" htmlFor="servico-nome">Nome</label>
                 <input className="input" placeholder="Ex.: Corte degradê" autoFocus {...campo('nome')} />
@@ -240,7 +284,7 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
                 <p className="text-xs text-muted">Agendamentos já marcados mantêm o preço antigo.</p>
               )}
             </div>
-            <div className="flex justify-end gap-2 border-t border-rule bg-paper px-5 py-4">
+            <div className="flex justify-end gap-2.5 rounded-b-xl border-t border-rule bg-paper px-5 py-4">
               <button type="button" className="btn btn-secondary" onClick={() => setEditando(null)}>
                 Cancelar
               </button>
@@ -279,7 +323,7 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
           }}
           onFechar={() => setExcluindo(null)}
         >
-          {excluindo && <p>“{excluindo.nome}” será removido do seu catálogo. Esta ação não pode ser desfeita.</p>}
+          {excluindo && <p>“{excluindo.nome}” será removido do catálogo. Esta ação não pode ser desfeita.</p>}
         </ConfirmDialog>
       )}
     </div>

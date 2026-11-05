@@ -4,11 +4,11 @@ import {
   CalendarDays,
   ChartColumn,
   Clock4,
-  RotateCcw,
+  LayoutGrid,
   Search,
   Scissors,
 } from 'lucide-react';
-import type { PapelUsuario, Tela } from '../types';
+import type { Area, Tela } from '../types';
 
 interface ItemNav {
   tela: Tela;
@@ -16,72 +16,52 @@ interface ItemNav {
   Icone: typeof Search;
 }
 
-export const NAV: Record<PapelUsuario, ItemNav[]> = {
-  CLIENTE: [
-    { tela: 'inicio', rotulo: 'Encontrar serviço', Icone: Search },
-    { tela: 'meus-agendamentos', rotulo: 'Meus agendamentos', Icone: CalendarCheck2 },
+// Navegação de cada ator, conforme o diagrama de casos de uso
+export const NAV: Record<Area, ItemNav[]> = {
+  cliente: [
+    { tela: 'cliente/buscar', rotulo: 'Encontrar serviço', Icone: Search },
+    { tela: 'cliente/agendamentos', rotulo: 'Meus agendamentos', Icone: CalendarCheck2 },
   ],
-  PROFISSIONAL: [
-    { tela: 'agenda', rotulo: 'Agenda', Icone: CalendarDays },
-    { tela: 'servicos', rotulo: 'Serviços', Icone: Scissors },
-    { tela: 'disponibilidade', rotulo: 'Disponibilidade', Icone: Clock4 },
-    { tela: 'dashboard', rotulo: 'Dashboard', Icone: ChartColumn },
+  profissional: [
+    { tela: 'profissional/agenda', rotulo: 'Agenda', Icone: CalendarDays },
+    { tela: 'profissional/servicos', rotulo: 'Serviços', Icone: Scissors },
+    { tela: 'profissional/disponibilidade', rotulo: 'Disponibilidade', Icone: Clock4 },
+    { tela: 'profissional/dashboard', rotulo: 'Dashboard', Icone: ChartColumn },
+  ],
+  admin: [
+    { tela: 'admin/servicos', rotulo: 'Serviços', Icone: LayoutGrid },
+    { tela: 'admin/dashboard', rotulo: 'Dashboard', Icone: ChartColumn },
   ],
 };
 
-const USUARIO: Record<PapelUsuario, { nome: string; detalhe: string; iniciais: string }> = {
-  CLIENTE: { nome: 'Lucas Pereira', detalhe: 'Cliente', iniciais: 'LP' },
-  PROFISSIONAL: { nome: 'Carlos Silva', detalhe: 'Profissional · Barbearia', iniciais: 'CS' },
+export const AREAS: Record<Area, { titulo: string; nome: string; detalhe: string; iniciais: string }> = {
+  cliente: { titulo: 'Área do cliente', nome: 'Lucas Pereira', detalhe: 'Cliente', iniciais: 'LP' },
+  profissional: { titulo: 'Área do profissional', nome: 'Carlos Silva', detalhe: 'Profissional · Barbearia', iniciais: 'CS' },
+  admin: { titulo: 'Administração', nome: 'Administrador', detalhe: 'Admin da plataforma', iniciais: 'AD' },
 };
 
 interface AppShellProps {
-  papel: PapelUsuario;
+  area: Area;
   tela: Tela;
   onNavegar: (tela: Tela) => void;
-  onRestaurar: () => void;
   children: ReactNode;
 }
 
 function Marca() {
   return (
-    <div className="flex items-center gap-2.5">
-      <span aria-hidden className="grid size-8 place-items-center rounded-lg bg-marker text-ink">
+    <a href="#/" className="flex items-center gap-2.5 rounded-md" aria-label="AgendeFácil — início">
+      <span aria-hidden className="grid size-8 place-items-center rounded-lg bg-marker text-white">
         <CalendarCheck2 className="size-[18px]" strokeWidth={2.25} />
       </span>
-      <span className="text-[1.0625rem] font-bold tracking-tight text-white">AgendeFácil</span>
-    </div>
+      <span className="text-[1.0625rem] font-bold text-ink">AgendeFácil</span>
+    </a>
   );
 }
 
-function TrocaPerfil({ papel, onNavegar }: Pick<AppShellProps, 'papel' | 'onNavegar'>) {
-  const opcoes: { valor: PapelUsuario; rotulo: string; destino: Tela }[] = [
-    { valor: 'CLIENTE', rotulo: 'Cliente', destino: 'inicio' },
-    { valor: 'PROFISSIONAL', rotulo: 'Profissional', destino: 'agenda' },
-  ];
-  return (
-    <div role="radiogroup" aria-label="Ver o sistema como" className="grid grid-cols-2 rounded-lg bg-white/8 p-1">
-      {opcoes.map((o) => (
-        <button
-          key={o.valor}
-          type="button"
-          role="radio"
-          aria-checked={papel === o.valor}
-          onClick={() => papel !== o.valor && onNavegar(o.destino)}
-          className={`h-8 rounded-md text-[0.8125rem] font-semibold transition-colors duration-150 ${
-            papel === o.valor ? 'bg-white text-ink' : 'text-white/70 hover:text-white'
-          }`}
-        >
-          {o.rotulo}
-        </button>
-      ))}
-    </div>
-  );
-}
+export function AppShell({ area, tela, onNavegar, children }: AppShellProps) {
+  const usuario = AREAS[area];
 
-export function AppShell({ papel, tela, onNavegar, onRestaurar, children }: AppShellProps) {
-  const usuario = USUARIO[papel];
-
-  const itens = NAV[papel].map(({ tela: destino, rotulo, Icone }) => {
+  const itens = NAV[area].map(({ tela: destino, rotulo, Icone }) => {
     const ativo = destino === tela;
     return (
       <button
@@ -89,63 +69,52 @@ export function AppShell({ papel, tela, onNavegar, onRestaurar, children }: AppS
         type="button"
         onClick={() => onNavegar(destino)}
         aria-current={ativo ? 'page' : undefined}
-        className={`flex h-10 shrink-0 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors duration-150 ${
-          ativo ? 'bg-white/12 text-white' : 'text-white/70 hover:bg-white/6 hover:text-white'
+        className={`flex h-10 shrink-0 items-center gap-3 rounded-lg px-3 text-sm font-semibold transition-colors duration-150 ${
+          ativo ? 'bg-marker-soft text-marker-2' : 'text-muted hover:bg-ink-soft hover:text-ink'
         }`}
       >
-        <Icone className={`size-[18px] ${ativo ? 'text-marker' : ''}`} aria-hidden />
+        <Icone className="size-[18px]" aria-hidden />
         {rotulo}
       </button>
     );
   });
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[256px_1fr]">
+    <div className="min-h-dvh lg:grid lg:grid-cols-[264px_1fr]">
       {/* Barra lateral (desktop) */}
-      <aside className="sticky top-0 hidden h-dvh flex-col gap-6 bg-ink px-4 py-5 lg:flex">
+      <aside className="sticky top-0 hidden h-dvh flex-col gap-7 border-r border-rule bg-surface px-4 py-5 lg:flex">
         <Marca />
         <div>
-          <p className="mb-2 px-1 text-xs font-medium text-white/60">Ver o sistema como</p>
-          <TrocaPerfil papel={papel} onNavegar={onNavegar} />
+          <p className="mb-2 px-3 text-xs font-semibold text-muted">{usuario.titulo}</p>
+          <nav aria-label="Principal" className="flex flex-col gap-1">
+            {itens}
+          </nav>
         </div>
-        <nav aria-label="Principal" className="flex flex-col gap-1">
-          {itens}
-        </nav>
-        <div className="mt-auto space-y-3">
-          <button
-            type="button"
-            onClick={onRestaurar}
-            className="flex items-center gap-2 px-1 text-xs text-white/60 transition-colors hover:text-white"
-          >
-            <RotateCcw className="size-3.5" aria-hidden />
-            Restaurar dados de demonstração
-          </button>
-          <div className="flex items-center gap-3 rounded-lg bg-white/6 p-3">
-            <span className="grid size-9 place-items-center rounded-full bg-ink-soft text-xs font-bold text-ink">
+        <div className="mt-auto">
+          <div className="flex items-center gap-3 rounded-lg bg-paper p-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink-soft text-xs font-bold text-ink">
               {usuario.iniciais}
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-white">{usuario.nome}</p>
-              <p className="truncate text-xs text-white/60">{usuario.detalhe}</p>
+              <p className="truncate text-sm font-semibold">{usuario.nome}</p>
+              <p className="truncate text-xs text-muted">{usuario.detalhe}</p>
             </div>
           </div>
         </div>
       </aside>
 
       {/* Barra superior (mobile e tablet) */}
-      <header className="sticky top-0 z-20 bg-ink px-4 pt-3 pb-2 lg:hidden">
+      <header className="sticky top-0 z-20 border-b border-rule bg-surface px-4 pt-3 pb-3 lg:hidden">
         <div className="flex items-center justify-between gap-3">
           <Marca />
-          <div className="w-52">
-            <TrocaPerfil papel={papel} onNavegar={onNavegar} />
-          </div>
+          <span className="text-xs font-semibold text-muted">{usuario.titulo}</span>
         </div>
-        <nav aria-label="Principal" className="-mx-4 mt-2 flex gap-1 overflow-x-auto px-4 [scrollbar-width:none]">
+        <nav aria-label="Principal" className="-mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
           {itens}
         </nav>
       </header>
 
-      <main className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-10 lg:py-10">{children}</main>
+      <main className="mx-auto w-full max-w-[1200px] px-4 py-7 sm:px-6 lg:px-12 lg:py-12">{children}</main>
     </div>
   );
 }

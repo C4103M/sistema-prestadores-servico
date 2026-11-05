@@ -36,7 +36,7 @@ export function ConfirmDialog({
       ref={ref}
       onClose={onFechar}
       aria-labelledby="confirm-titulo"
-      className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-xl border border-rule bg-surface p-0 text-ink shadow-[0_12px_40px_rgb(19_35_61/0.22)]"
+      className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-xl border border-rule bg-surface p-0 shadow-[0_12px_40px_rgb(22_33_58/0.18)] text-ink"
     >
       <div className="p-6">
         <h2 id="confirm-titulo" className="text-lg font-bold">
@@ -44,7 +44,7 @@ export function ConfirmDialog({
         </h2>
         <div className="mt-2 text-sm text-muted">{children}</div>
       </div>
-      <div className="flex justify-end gap-2 border-t border-rule bg-paper px-6 py-4">
+      <div className="flex justify-end gap-2 rounded-b-2xl border-t border-rule-strong bg-paper px-6 py-4">
         <button type="button" className="btn btn-secondary" onClick={onFechar}>
           {rotuloCancelar}
         </button>

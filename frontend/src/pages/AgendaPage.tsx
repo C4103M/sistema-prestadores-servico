@@ -17,9 +17,9 @@ interface AgendaPageProps {
 const PX_POR_HORA = 72;
 
 const COR_BLOCO: Record<StatusAgendamento, string> = {
-  AGENDADO: 'border-agendado/30 bg-agendado-soft',
+  AGENDADO: 'border-agendado/25 bg-agendado-soft',
   CONCLUIDO: 'border-concluido/25 bg-concluido-soft',
-  CANCELADO: 'border-rule bg-cancelado-soft opacity-70',
+  CANCELADO: 'border-dashed border-rule-strong bg-cancelado-soft opacity-75',
   FALTOU: 'border-faltou/25 bg-faltou-soft',
 };
 
@@ -66,7 +66,7 @@ export function AgendaPage({ agendamentos, disponibilidades, onAtualizarStatus }
   const ehHoje = mesmoDia(dia, agora);
   const minAgora = agora.getHours() * 60 + agora.getMinutes();
   const ativos = doDia.filter((a) => a.status !== 'CANCELADO');
-  const previsto = ativos.reduce((s, a) => s + a.precoCobrado, 0);
+  const previsto = ativos.reduce((s, a) => s + a.preco, 0);
 
   return (
     <div className="space-y-8">
@@ -74,7 +74,7 @@ export function AgendaPage({ agendamentos, disponibilidades, onAtualizarStatus }
         titulo="Agenda"
         descricao="Atendimentos do dia em ordem de horário. Conclua ou registre a falta ao fim de cada um."
         acoes={
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2.5">
             <button type="button" className="btn btn-secondary btn-icon" onClick={() => mudarDia(-1)} aria-label="Dia anterior">
               <ChevronLeft className="size-4" aria-hidden />
             </button>
@@ -107,7 +107,7 @@ export function AgendaPage({ agendamentos, disponibilidades, onAtualizarStatus }
 
       {faixas.length === 0 && doDia.length === 0 ? (
         <div className="painel p-8 text-center">
-          <p className="font-semibold">Dia sem atendimento</p>
+          <p className=" text-lg font-bold">Dia sem atendimento</p>
           <p className="mt-1 text-sm text-muted">Você não tem disponibilidade cadastrada para este dia da semana.</p>
         </div>
       ) : (
@@ -144,17 +144,17 @@ export function AgendaPage({ agendamentos, disponibilidades, onAtualizarStatus }
                 return (
                   <li
                     key={a.id}
-                    className={`absolute inset-x-0 overflow-hidden rounded-lg border px-3 ${COR_BLOCO[a.status]} ${
+                    className={`absolute inset-x-0 overflow-hidden rounded-xl border px-3 ${COR_BLOCO[a.status]} ${
                       compacto ? 'flex items-center gap-3 py-1' : 'py-2'
                     }`}
                     style={{ top: topo + 2, height: altura - 4 }}
                   >
                     <div className={`min-w-0 ${compacto ? 'flex flex-1 items-center gap-3' : ''}`}>
-                      <p className="tabular min-w-0 truncate text-sm font-semibold">
-                        {hora(a.dataHoraInicio)}–{hora(a.dataHoraFim)} · {a.clienteNome}
+                      <p className="tabular min-w-0 truncate text-sm font-bold">
+                        <span className=" text-[0.8125rem]">{hora(a.dataHoraInicio)}–{hora(a.dataHoraFim)}</span> · {a.clienteNome}
                       </p>
                       <p className={`truncate text-xs text-muted ${compacto ? 'hidden shrink sm:block' : ''}`}>
-                        {a.servicoNome} · {moeda(a.precoCobrado)}
+                        {a.servicoNome} · {moeda(a.preco)}
                       </p>
                     </div>
                     <div className={`flex items-center gap-1.5 ${compacto ? '' : 'mt-1.5'}`}>
@@ -198,7 +198,7 @@ export function AgendaPage({ agendamentos, disponibilidades, onAtualizarStatus }
             {/* Agora: o marca-texto do dia */}
             {ehHoje && minAgora >= inicioJanela && minAgora <= fimJanela && (
               <div className="pointer-events-none absolute right-0 left-12 flex items-center" style={{ top: y(minAgora) }}>
-                <span className="tabular -translate-y-1/2 rounded bg-marker px-1.5 py-0.5 text-[0.6875rem] font-bold text-ink">
+                <span className="tabular -translate-y-1/2 rounded bg-marker px-1.5 py-0.5 text-[0.6875rem] font-bold text-white">
                   {hora(agora)}
                 </span>
                 <span className="h-0.5 flex-1 -translate-y-1/2 bg-marker" />

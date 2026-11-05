@@ -4,9 +4,9 @@ import { gerarAgendamentos, mockDisponibilidades, mockServicos } from './mockDat
 // Persistência do protótipo em localStorage. Na Etapa 3 estas funções passam a chamar a API REST.
 
 const CHAVES = {
-  servicos: 'agendefacil_servicos_v2',
-  agendamentos: 'agendefacil_agendamentos_v2',
-  disponibilidades: 'agendefacil_disponibilidades_v2',
+  servicos: 'agendefacil_servicos_v4',
+  agendamentos: 'agendefacil_agendamentos_v4',
+  disponibilidades: 'agendefacil_disponibilidades_v4',
 };
 
 function ler<T>(chave: string, inicial: () => T): T {
@@ -37,13 +37,3 @@ export const saveAgendamentos = (v: Agendamento[]) => gravar(CHAVES.agendamentos
 
 export const getDisponibilidades = () => ler<Disponibilidade[]>(CHAVES.disponibilidades, () => mockDisponibilidades);
 export const saveDisponibilidades = (v: Disponibilidade[]) => gravar(CHAVES.disponibilidades, v);
-
-export function restaurarDemonstracao() {
-  Object.values(CHAVES).forEach((c) => {
-    try {
-      localStorage.removeItem(c);
-    } catch {
-      // ignora
-    }
-  });
-}

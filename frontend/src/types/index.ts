@@ -1,6 +1,9 @@
 export type StatusAgendamento = 'AGENDADO' | 'CONCLUIDO' | 'CANCELADO' | 'FALTOU';
 
-export type PapelUsuario = 'CLIENTE' | 'PROFISSIONAL';
+export type PapelUsuario = 'ADMIN' | 'CLIENTE' | 'PROFISSIONAL';
+
+/** Cada ator do diagrama de casos de uso tem a sua área, com rotas próprias. */
+export type Area = 'cliente' | 'profissional' | 'admin';
 
 export type DiaSemana =
   | 'DOMINGO'
@@ -56,15 +59,17 @@ export interface Agendamento {
   servicoNome: string;
   dataHoraInicio: string; // ISO
   dataHoraFim: string; // ISO
-  precoCobrado: number;
+  preco: number;
   status: StatusAgendamento;
   criadoEm: string;
 }
 
 export type Tela =
-  | 'inicio'
-  | 'meus-agendamentos'
-  | 'agenda'
-  | 'servicos'
-  | 'disponibilidade'
-  | 'dashboard';
+  | 'cliente/buscar'
+  | 'cliente/agendamentos'
+  | 'profissional/agenda'
+  | 'profissional/servicos'
+  | 'profissional/disponibilidade'
+  | 'profissional/dashboard'
+  | 'admin/servicos'
+  | 'admin/dashboard';

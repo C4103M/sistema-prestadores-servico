@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AppShell, NAV } from './components/AppShell';
+import { InicioPage } from './pages/InicioPage';
 import { HomePage } from './pages/HomePage';
 import { MeusAgendamentosPage } from './pages/MeusAgendamentosPage';
 import { AgendaPage } from './pages/AgendaPage';
@@ -10,38 +11,42 @@ import {
   getAgendamentos,
   getDisponibilidades,
   getServicos,
-  restaurarDemonstracao,
   saveAgendamentos,
   saveDisponibilidades,
   saveServicos,
 } from './services/storage';
-import type { Agendamento, Disponibilidade, PapelUsuario, Servico, StatusAgendamento, Tela } from './types';
+import type { Agendamento, Area, Disponibilidade, Servico, StatusAgendamento, Tela } from './types';
 
 const TELAS = Object.values(NAV).flatMap((itens) => itens.map((i) => i.tela));
 
-const telaDoHash = (): Tela => {
-  const t = window.location.hash.replace(/^#\/?/, '') as Tela;
-  return TELAS.includes(t) ? t : 'inicio';
+// Rotas por ator: #/cliente/..., #/profissional/..., #/admin/...  (#/ é a escolha da área)
+const telaDoHash = (): Tela | null => {
+  const t = window.location.hash.replace(/^#\/?/, '');
+  if (TELAS.includes(t as Tela)) return t as Tela;
+  // #/cliente, #/profissional e #/admin abrem a primeira tela da área
+  if (t in NAV) return NAV[t as Area][0].tela;
+  return null;
 };
 
-const papelDa = (tela: Tela): PapelUsuario =>
-  NAV.CLIENTE.some((i) => i.tela === tela) ? 'CLIENTE' : 'PROFISSIONAL';
+const areaDa = (tela: Tela) => tela.split('/')[0] as Area;
 
 export function App() {
-  const [tela, setTela] = useState<Tela>(telaDoHash);
+  const [tela, setTela] = useState<Tela | null>(telaDoHash);
   const [servicos, setServicos] = useState<Servico[]>(getServicos);
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>(getAgendamentos);
   const [disponibilidades, setDisponibilidades] = useState<Disponibilidade[]>(getDisponibilidades);
 
   useEffect(() => {
-    const aoMudar = () => setTela(telaDoHash());
+    const aoMudar = () => {
+      setTela(telaDoHash());
+      window.scrollTo({ top: 0 });
+    };
     window.addEventListener('hashchange', aoMudar);
     return () => window.removeEventListener('hashchange', aoMudar);
   }, []);
 
   const navegar = (destino: Tela) => {
     window.location.hash = `/${destino}`;
-    window.scrollTo({ top: 0 });
   };
 
   const atualizarServicos = (novos: Servico[]) => {
@@ -59,6 +64,9 @@ export function App() {
 
   const salvarServico = (s: Servico) =>
     atualizarServicos(servicos.some((x) => x.id === s.id) ? servicos.map((x) => (x.id === s.id ? s : x)) : [...servicos, s]);
+  const excluirServico = (id: number) => atualizarServicos(servicos.filter((s) => s.id !== id));
+  const alternarServico = (id: number) =>
+    atualizarServicos(servicos.map((s) => (s.id === id ? { ...s, ativo: !s.ativo } : s)));
 
   const salvarFaixa = (f: Disponibilidade) =>
     atualizarDisponibilidades(
@@ -71,51 +79,51 @@ export function App() {
   const mudarStatus = (id: number, status: StatusAgendamento) =>
     atualizarAgendamentos(agendamentos.map((a) => (a.id === id && a.status === 'AGENDADO' ? { ...a, status } : a)));
 
-  const restaurar = () => {
-    restaurarDemonstracao();
-    setServicos(getServicos());
-    setAgendamentos(getAgendamentos());
-    setDisponibilidades(getDisponibilidades());
-  };
+
+  if (tela === null) return <InicioPage />;
 
   return (
-    <AppShell papel={papelDa(tela)} tela={tela} onNavegar={navegar} onRestaurar={restaurar}>
-      {tela === 'inicio' && (
+    <AppShell area={areaDa(tela)} tela={tela} onNavegar={navegar}>
+      {tela === 'cliente/buscar' && (
         <HomePage
           servicos={servicos}
           agendamentos={agendamentos}
           disponibilidades={disponibilidades}
           onCriarAgendamento={(novo) => atualizarAgendamentos([...agendamentos, novo])}
-          onVerAgendamentos={() => navegar('meus-agendamentos')}
+          onVerAgendamentos={() => navegar('cliente/agendamentos')}
         />
       )}
-      {tela === 'meus-agendamentos' && (
+      {tela === 'cliente/agendamentos' && (
         <MeusAgendamentosPage
           agendamentos={agendamentos}
           onCancelar={(id) => mudarStatus(id, 'CANCELADO')}
-          onAgendar={() => navegar('inicio')}
+          onAgendar={() => navegar('cliente/buscar')}
         />
       )}
-      {tela === 'agenda' && (
+      {tela === 'profissional/agenda' && (
         <AgendaPage agendamentos={agendamentos} disponibilidades={disponibilidades} onAtualizarStatus={mudarStatus} />
       )}
-      {tela === 'servicos' && (
+      {(tela === 'profissional/servicos' || tela === 'admin/servicos') && (
         <ServicosPage
+          key={tela}
+          area={areaDa(tela) as 'profissional' | 'admin'}
           servicos={servicos}
           agendamentos={agendamentos}
           onSalvar={salvarServico}
-          onExcluir={(id) => atualizarServicos(servicos.filter((s) => s.id !== id))}
-          onAlternarAtivo={(id) => atualizarServicos(servicos.map((s) => (s.id === id ? { ...s, ativo: !s.ativo } : s)))}
+          onExcluir={excluirServico}
+          onAlternarAtivo={alternarServico}
         />
       )}
-      {tela === 'disponibilidade' && (
+      {tela === 'profissional/disponibilidade' && (
         <DisponibilidadePage
           disponibilidades={disponibilidades}
           onSalvar={salvarFaixa}
           onExcluir={(id) => atualizarDisponibilidades(disponibilidades.filter((d) => d.id !== id))}
         />
       )}
-      {tela === 'dashboard' && <DashboardPage agendamentos={agendamentos} />}
+      {(tela === 'profissional/dashboard' || tela === 'admin/dashboard') && (
+        <DashboardPage key={tela} area={areaDa(tela) as 'profissional' | 'admin'} agendamentos={agendamentos} />
+      )}
     </AppShell>
   );
 }
