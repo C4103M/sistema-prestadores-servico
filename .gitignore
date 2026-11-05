@@ -22,3 +22,7 @@ application-local.properties
 *.iml
 .DS_Store
 Thumbs.db
+
+# gerados pelo preparar-apresentacao.sh
+backend.log
+*.patch
