@@ -28,6 +28,7 @@ flowchart LR
         service["<b>«package» service</b><br/>ServicoService · DisponibilidadeService<br/>AgendamentoService"]
         repository["<b>«package» repository</b><br/>UsuarioRepository · ClienteRepository · ProfissionalRepository<br/>ServicoRepository · DisponibilidadeRepository · AgendamentoRepository"]
         model["<b>«package» model</b><br/>Usuario · Cliente · Profissional · Servico<br/>Disponibilidade · Agendamento · StatusAgendamento"]
+        exception["<b>«package» exception</b><br/>GlobalExceptionHandler · RecursoNaoEncontradoException"]
         config -.-> controller
         controller --> service
         controller --> dto
@@ -35,6 +36,8 @@ flowchart LR
         service --> model
         service --> dto
         repository --> model
+        service -.-> exception
+        controller -.-> exception
     end
 
     db[("PostgreSQL 16")]
@@ -53,6 +56,7 @@ flowchart LR
 | `service` | Regras de negócio: horários livres, conflito de horário, cancelamento com 2 h, preço congelado, faturamento. |
 | `repository` | Interfaces Spring Data JPA, incluindo a consulta de conflito de horário. |
 | `model` | Entidades JPA e enumerações do domínio. |
+| `exception` | `GlobalExceptionHandler` converte as exceções em respostas `ProblemDetail` (RFC 7807): 404 para recurso inexistente, 400 para dados inválidos e 409 para regra de negócio violada. |
 
 ## Pacotes do frontend
 

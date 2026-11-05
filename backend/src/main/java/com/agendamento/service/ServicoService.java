@@ -1,6 +1,7 @@
 package com.agendamento.service;
 
 import com.agendamento.dto.ServicoDTO;
+import com.agendamento.exception.RecursoNaoEncontradoException;
 import com.agendamento.model.Profissional;
 import com.agendamento.model.Servico;
 import com.agendamento.repository.ProfissionalRepository;
@@ -46,7 +47,7 @@ public class ServicoService {
     @Transactional
     public ServicoDTO criar(ServicoDTO dto) {
         Profissional profissional = profissionalRepository.findById(dto.getProfissionalId())
-                .orElseThrow(() -> new IllegalArgumentException("Profissional não encontrado: " + dto.getProfissionalId()));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Profissional não encontrado: " + dto.getProfissionalId()));
 
         Servico servico = Servico.builder()
                 .nome(dto.getNome())
@@ -63,7 +64,7 @@ public class ServicoService {
     @Transactional
     public ServicoDTO atualizar(Long id, ServicoDTO dto) {
         Servico servico = servicoRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Serviço não encontrado: " + id));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Serviço não encontrado: " + id));
 
         servico.setNome(dto.getNome());
         servico.setDescricao(dto.getDescricao());
@@ -79,7 +80,7 @@ public class ServicoService {
     @Transactional
     public void alternarStatus(Long id) {
         Servico servico = servicoRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Serviço não encontrado: " + id));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Serviço não encontrado: " + id));
         servico.setAtivo(!servico.getAtivo());
         servicoRepository.save(servico);
     }
@@ -87,9 +88,10 @@ public class ServicoService {
     @Transactional
     public void excluir(Long id) {
         if (!servicoRepository.existsById(id)) {
-            throw new IllegalArgumentException("Serviço não encontrado: " + id);
+            throw new RecursoNaoEncontradoException("Serviço não encontrado: " + id);
         }
         servicoRepository.deleteById(id);
+        servicoRepository.flush(); // dispara aqui a violação de FK de um serviço com agendamentos
     }
 
     public ServicoDTO toDTO(Servico s) {

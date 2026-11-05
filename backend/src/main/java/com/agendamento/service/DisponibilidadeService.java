@@ -1,6 +1,7 @@
 package com.agendamento.service;
 
 import com.agendamento.dto.DisponibilidadeDTO;
+import com.agendamento.exception.RecursoNaoEncontradoException;
 import com.agendamento.model.Disponibilidade;
 import com.agendamento.model.Profissional;
 import com.agendamento.repository.DisponibilidadeRepository;
@@ -32,7 +33,7 @@ public class DisponibilidadeService {
     @Transactional
     public DisponibilidadeDTO criar(DisponibilidadeDTO dto) {
         Profissional profissional = profissionalRepository.findById(dto.getProfissionalId())
-                .orElseThrow(() -> new IllegalArgumentException("Profissional não encontrado: " + dto.getProfissionalId()));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Profissional não encontrado: " + dto.getProfissionalId()));
 
         validar(dto, null);
 
@@ -49,7 +50,7 @@ public class DisponibilidadeService {
     @Transactional
     public DisponibilidadeDTO atualizar(Long id, DisponibilidadeDTO dto) {
         Disponibilidade disponibilidade = disponibilidadeRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Disponibilidade não encontrada: " + id));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Disponibilidade não encontrada: " + id));
 
         dto.setProfissionalId(disponibilidade.getProfissional().getId());
         validar(dto, id);
@@ -64,7 +65,7 @@ public class DisponibilidadeService {
     @Transactional
     public void excluir(Long id) {
         if (!disponibilidadeRepository.existsById(id)) {
-            throw new IllegalArgumentException("Disponibilidade não encontrada: " + id);
+            throw new RecursoNaoEncontradoException("Disponibilidade não encontrada: " + id);
         }
         disponibilidadeRepository.deleteById(id);
     }

@@ -3,6 +3,7 @@ package com.agendamento.service;
 import com.agendamento.dto.AgendamentoRequestDTO;
 import com.agendamento.dto.AgendamentoResponseDTO;
 import com.agendamento.dto.DashboardDTO;
+import com.agendamento.exception.RecursoNaoEncontradoException;
 import com.agendamento.model.*;
 import com.agendamento.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -26,13 +27,13 @@ public class AgendamentoService {
     @Transactional
     public AgendamentoResponseDTO criar(AgendamentoRequestDTO dto) {
         Cliente cliente = clienteRepository.findById(dto.getClienteId())
-                .orElseThrow(() -> new IllegalArgumentException("Cliente não encontrado: " + dto.getClienteId()));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Cliente não encontrado: " + dto.getClienteId()));
 
         Profissional profissional = profissionalRepository.findById(dto.getProfissionalId())
-                .orElseThrow(() -> new IllegalArgumentException("Profissional não encontrado: " + dto.getProfissionalId()));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Profissional não encontrado: " + dto.getProfissionalId()));
 
         Servico servico = servicoRepository.findById(dto.getServicoId())
-                .orElseThrow(() -> new IllegalArgumentException("Serviço não encontrado: " + dto.getServicoId()));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Serviço não encontrado: " + dto.getServicoId()));
 
         LocalDateTime inicio = dto.getDataHoraInicio();
         LocalDateTime fim = inicio.plusMinutes(servico.getDuracaoMinutos());
@@ -80,7 +81,7 @@ public class AgendamentoService {
     @Transactional
     public AgendamentoResponseDTO cancelar(Long id) {
         Agendamento agendamento = agendamentoRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Agendamento não encontrado: " + id));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento não encontrado: " + id));
 
         agendamento.cancelar(LocalDateTime.now());
         return toDTO(agendamentoRepository.save(agendamento));
@@ -89,7 +90,7 @@ public class AgendamentoService {
     @Transactional
     public AgendamentoResponseDTO marcarConcluido(Long id) {
         Agendamento agendamento = agendamentoRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Agendamento não encontrado: " + id));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento não encontrado: " + id));
 
         agendamento.marcarConcluido();
         return toDTO(agendamentoRepository.save(agendamento));
@@ -98,7 +99,7 @@ public class AgendamentoService {
     @Transactional
     public AgendamentoResponseDTO marcarFalta(Long id) {
         Agendamento agendamento = agendamentoRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Agendamento não encontrado: " + id));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento não encontrado: " + id));
 
         agendamento.marcarFalta();
         return toDTO(agendamentoRepository.save(agendamento));
