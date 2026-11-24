@@ -23,4 +23,5 @@ public class AgendamentoResponse {
     private BigDecimal preco;
     private StatusAgendamento status;
     private Boolean podeCancelar;
+    private LocalDateTime criadoEm;
 }

@@ -27,7 +27,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/profissional/{profissionalId}")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class ProfissionalController {
 
     private final ServicoService servicoService;

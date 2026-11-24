@@ -13,7 +13,6 @@ import java.time.LocalTime;
 public class DisponibilidadeDTO {
     private Long id;
 
-    @NotNull(message = "O profissional é obrigatório.")
     private Long profissionalId;
 
     @NotNull(message = "O dia da semana é obrigatório.")

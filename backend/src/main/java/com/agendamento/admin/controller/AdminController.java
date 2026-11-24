@@ -1,6 +1,7 @@
 package com.agendamento.admin.controller;
 
 import com.agendamento.admin.dto.response.AdminDashboardResponse;
+import com.agendamento.agendamento.dto.response.AgendamentoResponse;
 import com.agendamento.agendamento.service.AgendamentoService;
 import com.agendamento.profissional.dto.response.ProfissionalResponse;
 import com.agendamento.profissional.repository.ProfissionalRepository;
@@ -24,7 +25,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class AdminController {
 
     private final ServicoService servicoService;
@@ -69,7 +69,12 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
-    // ---- Ver dashboard (toda a plataforma)
+    // ---- Agendamentos e Dashboard (toda a plataforma)
+    @GetMapping("/agendamentos")
+    public List<AgendamentoResponse> agendamentos() {
+        return agendamentoService.listarTodos();
+    }
+
     @GetMapping("/dashboard")
     public AdminDashboardResponse dashboard() {
         return agendamentoService.obterDashboardGeral(profissionalRepository.count(), servicoRepository.findByAtivoTrue().size());

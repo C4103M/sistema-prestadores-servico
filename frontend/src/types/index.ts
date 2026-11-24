@@ -18,8 +18,9 @@ export interface Profissional {
   id: number;
   nome: string;
   especialidade: string;
-  email: string;
-  telefone: string;
+  email?: string;
+  telefone?: string;
+  servicos?: Servico[];
 }
 
 export interface Cliente {
@@ -61,7 +62,20 @@ export interface Agendamento {
   dataHoraFim: string; // ISO
   preco: number;
   status: StatusAgendamento;
-  criadoEm: string;
+  podeCancelar?: boolean;
+  criadoEm?: string;
+}
+
+export interface HealthStatus {
+  status: 'UP' | 'DOWN';
+  database: 'UP' | 'DOWN';
+  timestamp: string;
+  resumo?: {
+    profissionais: number;
+    clientes: number;
+    servicos: number;
+    agendamentos: number;
+  };
 }
 
 export type Tela =

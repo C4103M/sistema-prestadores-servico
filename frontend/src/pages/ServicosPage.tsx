@@ -1,19 +1,19 @@
 import { useState, type FormEvent } from 'react';
 import { Pencil, Plus, Trash2, X } from 'lucide-react';
-import type { Agendamento, Servico } from '../types';
+import type { Agendamento, Area, Profissional, Servico } from '../types';
 import { PageHeader } from '../components/PageHeader';
 import { EmptyState } from '../components/EmptyState';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { duracao, moeda } from '../services/formato';
 import { PROFISSIONAL_LOGADO_ID, mockProfissionais } from '../services/mockData';
-import type { Area } from '../types';
 
 interface ServicosPageProps {
   servicos: Servico[];
   agendamentos: Agendamento[];
-  onSalvar: (servico: Servico) => void;
-  onExcluir: (id: number) => void;
-  onAlternarAtivo: (id: number) => void;
+  profissionais?: Profissional[];
+  onSalvar: (servico: Servico) => void | Promise<void>;
+  onExcluir: (id: number) => void | Promise<void>;
+  onAlternarAtivo: (id: number) => void | Promise<void>;
   /** PROFISSIONAL vê e edita só os próprios serviços; ADMIN vê e edita os de todos. */
   area: Extract<Area, 'profissional' | 'admin'>;
 }
@@ -43,8 +43,9 @@ function validar(f: Formulario): Erros {
   return erros;
 }
 
-export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAlternarAtivo, area }: ServicosPageProps) {
+export function ServicosPage({ servicos, agendamentos, profissionais, onSalvar, onExcluir, onAlternarAtivo, area }: ServicosPageProps) {
   const admin = area === 'admin';
+  const listaProfissionais = profissionais ?? mockProfissionais;
   const [filtroProf, setFiltroProf] = useState('todos');
   // null = formulário fechado; 'novo' = cadastro; número = edição
   const [editando, setEditando] = useState<'novo' | number | null>(null);
@@ -59,7 +60,10 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
 
   const abrirNovo = () => {
     setEditando('novo');
-    setForm(VAZIO);
+    setForm({
+      ...VAZIO,
+      profissionalId: String(listaProfissionais[0]?.id ?? PROFISSIONAL_LOGADO_ID),
+    });
     setErros({});
   };
 
@@ -68,35 +72,39 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
     setForm({
       profissionalId: String(s.profissionalId),
       nome: s.nome,
-      categoria: s.categoria,
-      descricao: s.descricao,
+      categoria: s.categoria || 'Outros',
+      descricao: s.descricao ?? '',
       duracaoMinutos: String(s.duracaoMinutos),
       preco: s.preco.toFixed(2).replace('.', ','),
     });
     setErros({});
   };
 
-  const salvar = (e: FormEvent) => {
+  const salvar = async (e: FormEvent) => {
     e.preventDefault();
     const encontrados = validar(form);
     setErros(encontrados);
     if (Object.keys(encontrados).length > 0) return;
 
     const existente = typeof editando === 'number' ? servicos.find((s) => s.id === editando) : undefined;
-    const profissional = mockProfissionais.find((p) => p.id === Number(form.profissionalId))!;
-    onSalvar({
-      id: existente?.id ?? Date.now(),
-      nome: form.nome.trim(),
-      categoria: form.categoria,
-      descricao: form.descricao.trim(),
-      duracaoMinutos: Number(form.duracaoMinutos),
-      preco: Number(form.preco.replace(',', '.')),
-      ativo: existente?.ativo ?? true,
-      profissionalId: profissional.id,
-      profissionalNome: profissional.nome,
-    });
-    setAviso(existente ? `“${form.nome.trim()}” foi atualizado.` : `“${form.nome.trim()}” foi cadastrado.`);
-    setEditando(null);
+    const profissional = listaProfissionais.find((p) => p.id === Number(form.profissionalId)) ?? listaProfissionais[0];
+    try {
+      await onSalvar({
+        id: existente?.id ?? Date.now(),
+        nome: form.nome.trim(),
+        categoria: form.categoria,
+        descricao: form.descricao.trim(),
+        duracaoMinutos: Number(form.duracaoMinutos),
+        preco: Number(form.preco.replace(',', '.')),
+        ativo: existente?.ativo ?? true,
+        profissionalId: profissional?.id ?? Number(form.profissionalId),
+        profissionalNome: profissional?.nome ?? '',
+      });
+      setAviso(existente ? `“${form.nome.trim()}” foi atualizado.` : `“${form.nome.trim()}” foi cadastrado.`);
+      setEditando(null);
+    } catch {
+      // erro exibido no banner global
+    }
   };
 
   const temAgendamentos = (id: number) => agendamentos.some((a) => a.servicoId === id);
@@ -154,7 +162,7 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
                 onChange={(e) => setFiltroProf(e.target.value)}
               >
                 <option value="todos">Todos</option>
-                {mockProfissionais.map((p) => (
+                {listaProfissionais.map((p) => (
                   <option key={p.id} value={p.id}>{p.nome}</option>
                 ))}
               </select>
@@ -245,7 +253,7 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
                 <div>
                   <label className="label" htmlFor="servico-profissionalId">Profissional</label>
                   <select className="input" {...campo('profissionalId')}>
-                    {mockProfissionais.map((p) => (
+                    {listaProfissionais.map((p) => (
                       <option key={p.id} value={p.id}>{p.nome}</option>
                     ))}
                   </select>
@@ -315,11 +323,15 @@ export function ServicosPage({ servicos, agendamentos, onSalvar, onExcluir, onAl
           titulo="Excluir este serviço?"
           rotuloConfirmar="Excluir"
           perigo
-          onConfirmar={() => {
+          onConfirmar={async () => {
             if (!excluindo) return;
-            onExcluir(excluindo.id);
-            if (editando === excluindo.id) setEditando(null);
-            setAviso(`“${excluindo.nome}” foi excluído.`);
+            try {
+              await onExcluir(excluindo.id);
+              if (editando === excluindo.id) setEditando(null);
+              setAviso(`“${excluindo.nome}” foi excluído.`);
+            } catch {
+              // erro exibido no banner global
+            }
           }}
           onFechar={() => setExcluindo(null)}
         >

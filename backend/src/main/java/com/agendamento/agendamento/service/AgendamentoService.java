@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.time.LocalTime;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -104,6 +105,13 @@ public class AgendamentoService {
     @Transactional(readOnly = true)
     public List<AgendamentoResponse> listarPorProfissional(Long profissionalId) {
         return agendamentoRepository.findByProfissionalIdOrderByDataHoraInicioAsc(profissionalId).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<AgendamentoResponse> listarTodos() {
+        return agendamentoRepository.findAll(Sort.by(Sort.Direction.DESC, "dataHoraInicio")).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
@@ -232,6 +240,7 @@ public class AgendamentoService {
                 .preco(a.getPreco())
                 .status(a.getStatus())
                 .podeCancelar(a.podeCancelar(agora))
+                .criadoEm(a.getCriadoEm())
                 .build();
     }
 }

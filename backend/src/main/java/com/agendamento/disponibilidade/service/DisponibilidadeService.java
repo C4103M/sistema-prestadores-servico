@@ -42,6 +42,9 @@ public class DisponibilidadeService {
 
     @Transactional
     public DisponibilidadeDTO criar(DisponibilidadeDTO dto) {
+        if (dto.getProfissionalId() == null) {
+            throw new IllegalArgumentException("O profissional é obrigatório.");
+        }
         Profissional profissional = profissionalRepository.findById(dto.getProfissionalId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Profissional não encontrado: " + dto.getProfissionalId()));
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { CalendarCheck2, ChevronDown, Clock, Search, X } from 'lucide-react';
-import type { Agendamento, Disponibilidade, Servico } from '../types';
+import type { Agendamento, Disponibilidade, Profissional, Servico } from '../types';
 import { PageHeader } from '../components/PageHeader';
 import { EmptyState } from '../components/EmptyState';
 import { dataCurta, duracao, hora, moeda } from '../services/formato';
@@ -11,14 +11,22 @@ interface HomePageProps {
   servicos: Servico[];
   agendamentos: Agendamento[];
   disponibilidades: Disponibilidade[];
-  onCriarAgendamento: (novo: Agendamento) => void;
+  profissionais?: Profissional[];
+  onCriarAgendamento: (novo: Agendamento) => Promise<Agendamento>;
   onVerAgendamentos: () => void;
 }
 
 const normalizar = (s: string) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-export function HomePage({ servicos, agendamentos, disponibilidades, onCriarAgendamento, onVerAgendamentos }: HomePageProps) {
+export function HomePage({
+  servicos,
+  agendamentos,
+  disponibilidades,
+  profissionais: profissionaisProp,
+  onCriarAgendamento,
+  onVerAgendamentos,
+}: HomePageProps) {
   const [busca, setBusca] = useState('');
   const [categoria, setCategoria] = useState('Todas');
   const [selecionadoId, setSelecionadoId] = useState<number | null>(null);
@@ -32,19 +40,22 @@ export function HomePage({ servicos, agendamentos, disponibilidades, onCriarAgen
   };
 
   const ativos = servicos.filter((s) => s.ativo);
-  const categorias = ['Todas', ...Array.from(new Set(ativos.map((s) => s.categoria)))];
+  const categorias = ['Todas', ...Array.from(new Set(ativos.map((s) => s.categoria).filter(Boolean)))];
 
   const termo = normalizar(busca.trim());
   const naCategoria = (s: Servico) => categoria === 'Todas' || s.categoria === categoria;
 
   // Busca por serviço: nome, descrição ou categoria do serviço
   const filtrados = ativos.filter(
-    (s) => naCategoria(s) && (!termo || [s.nome, s.descricao, s.categoria].some((c) => normalizar(c).includes(termo)))
+    (s) =>
+      naCategoria(s) &&
+      (!termo || [s.nome, s.descricao ?? '', s.categoria ?? ''].some((c) => normalizar(c).includes(termo)))
   );
 
   // Busca por profissional: nome ou especialidade; mostra só quem tem serviço ativo na categoria
-  const profissionais = mockProfissionais
-    .filter((p) => !termo || [p.nome, p.especialidade].some((c) => normalizar(c).includes(termo)))
+  const listaProfissionais = profissionaisProp ?? mockProfissionais;
+  const profissionais = listaProfissionais
+    .filter((p) => !termo || [p.nome, p.especialidade ?? ''].some((c) => normalizar(c).includes(termo)))
     .map((p) => ({ ...p, servicos: ativos.filter((s) => s.profissionalId === p.id && naCategoria(s)) }))
     .filter((p) => p.servicos.length > 0);
 
@@ -261,7 +272,7 @@ interface PainelAgendamentoProps {
   agendamentos: Agendamento[];
   disponibilidades: Disponibilidade[];
   onFechar: () => void;
-  onConfirmar: (novo: Agendamento) => void;
+  onConfirmar: (novo: Agendamento) => Promise<Agendamento>;
   onVerAgendamentos: () => void;
 }
 
@@ -290,6 +301,7 @@ function PainelAgendamento({
   const [diaIdx, setDiaIdx] = useState(primeiroComHorario);
   const [escolhido, setEscolhido] = useState<Horario | null>(null);
   const [erro, setErro] = useState('');
+  const [enviando, setEnviando] = useState(false);
   const [confirmado, setConfirmado] = useState<Agendamento | null>(null);
 
   const livres = livresPorDia[diaIdx];
@@ -301,8 +313,8 @@ function PainelAgendamento({
     { rotulo: 'Noite', itens: livres.filter((h) => h.inicio.getHours() >= 18) },
   ].filter((g) => g.itens.length > 0);
 
-  const confirmar = () => {
-    if (!escolhido) return;
+  const confirmar = async () => {
+    if (!escolhido || enviando) return;
     // E2: o horário pode ter sido ocupado enquanto o cliente decidia
     if (temConflito(agendamentos, servico.profissionalId, escolhido.inicio, escolhido.fim)) {
       setErro('Este horário acabou de ser ocupado. Escolha outro.');
@@ -324,8 +336,17 @@ function PainelAgendamento({
       status: 'AGENDADO',
       criadoEm: new Date().toISOString(),
     };
-    onConfirmar(novo);
-    setConfirmado(novo);
+    setEnviando(true);
+    setErro('');
+    try {
+      const salvo = await onConfirmar(novo);
+      setConfirmado(salvo);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível confirmar o agendamento.');
+      setEscolhido(null);
+    } finally {
+      setEnviando(false);
+    }
   };
 
   if (confirmado) {
@@ -483,8 +504,8 @@ function PainelAgendamento({
         ) : (
           <p className="mb-5 text-sm text-muted">Escolha um horário para ver o resumo.</p>
         )}
-        <button type="button" className="btn btn-primary w-full" disabled={!escolhido} onClick={confirmar}>
-          Confirmar agendamento
+        <button type="button" className="btn btn-primary w-full" disabled={!escolhido || enviando} onClick={() => void confirmar()}>
+          {enviando ? 'Confirmando…' : 'Confirmar agendamento'}
         </button>
         <p className="mt-2 text-center text-xs text-muted">O valor fica garantido mesmo se o preço mudar depois.</p>
       </div>
