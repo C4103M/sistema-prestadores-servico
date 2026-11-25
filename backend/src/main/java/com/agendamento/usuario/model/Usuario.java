@@ -2,6 +2,7 @@ package com.agendamento.usuario.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 import java.time.LocalDateTime;
 
 @Entity
@@ -31,6 +32,7 @@ public class Usuario {
     private PapelUsuario papel;
 
     @Column(nullable = false)
+    @ColumnDefault("true")
     @Builder.Default
     private Boolean ativo = true;
 
