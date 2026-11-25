@@ -1,6 +1,8 @@
 package com.agendamento.admin.controller;
 
 import com.agendamento.admin.dto.response.AdminDashboardResponse;
+import com.agendamento.admin.dto.response.UsuarioAdminResponse;
+import com.agendamento.admin.service.AdminUsuarioService;
 import com.agendamento.agendamento.service.AgendamentoService;
 import com.agendamento.categoria.dto.CategoriaRequest;
 import com.agendamento.categoria.dto.CategoriaResponse;
@@ -8,6 +10,7 @@ import com.agendamento.categoria.service.CategoriaService;
 import com.agendamento.profissional.repository.ProfissionalRepository;
 import com.agendamento.seguranca.UsuarioAutenticado;
 import com.agendamento.servico.repository.ServicoRepository;
+import com.agendamento.usuario.model.PapelUsuario;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -41,6 +44,33 @@ public class AdminController {
     private final ProfissionalRepository profissionalRepository;
     private final ServicoRepository servicoRepository;
     private final CategoriaService categoriaService;
+    private final AdminUsuarioService adminUsuarioService;
+
+    // ---- Usuários (ativar / desativar)
+    @Operation(summary = "Listar usuários da plataforma")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de usuários com filtro opcional por papel, situação e busca")
+    })
+    @GetMapping("/usuarios")
+    public List<UsuarioAdminResponse> usuarios(
+            @RequestParam(required = false) PapelUsuario papel,
+            @RequestParam(required = false) Boolean ativo,
+            @RequestParam(required = false) String busca) {
+        return adminUsuarioService.listarUsuarios(papel, ativo, busca);
+    }
+
+    @Operation(summary = "Ativar ou desativar usuário", description = "Alterna o campo ativo do usuário; contas desativadas perdem acesso imediatamente.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Status do usuário atualizado"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "409", description = "Tentativa de desativar a própria conta ou outro administrador", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @PatchMapping("/usuarios/{id}/status")
+    public UsuarioAdminResponse alternarStatusUsuario(
+            @AuthenticationPrincipal UsuarioAutenticado atual,
+            @PathVariable Long id) {
+        return adminUsuarioService.alternarStatus(atual.getUsuarioId(), id);
+    }
 
     // ---- Categorias / Especialidades
     @Operation(summary = "Listar todas as categorias (pendentes primeiro)")

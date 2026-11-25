@@ -9,6 +9,7 @@ import com.agendamento.cliente.repository.ClienteRepository;
 import com.agendamento.compartilhado.exceptions.CredenciaisInvalidasException;
 import com.agendamento.compartilhado.exceptions.EmailJaCadastradoException;
 import com.agendamento.compartilhado.exceptions.RecursoNaoEncontradoException;
+import com.agendamento.compartilhado.exceptions.UsuarioDesativadoException;
 import com.agendamento.profissional.model.Profissional;
 import com.agendamento.profissional.repository.ProfissionalRepository;
 import com.agendamento.seguranca.JwtService;
@@ -85,6 +86,9 @@ public class AuthService {
         if (usuario == null || !senhaConfere) {
             throw new CredenciaisInvalidasException();
         }
+        if (!Boolean.TRUE.equals(usuario.getAtivo())) {
+            throw new UsuarioDesativadoException();
+        }
         return respostaDoUsuario(usuario);
     }
 
@@ -93,6 +97,9 @@ public class AuthService {
     public AuthResponse renovar(Long usuarioId) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(CredenciaisInvalidasException::new);
+        if (!Boolean.TRUE.equals(usuario.getAtivo())) {
+            throw new UsuarioDesativadoException();
+        }
         return respostaDoUsuario(usuario);
     }
 

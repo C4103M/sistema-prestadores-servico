@@ -33,6 +33,11 @@ public class GlobalExceptionHandler {
         return problema(HttpStatus.UNAUTHORIZED, "Credenciais inválidas", ex.getMessage());
     }
 
+    @ExceptionHandler(UsuarioDesativadoException.class)
+    public ProblemDetail usuarioDesativado(UsuarioDesativadoException ex) {
+        return problema(HttpStatus.FORBIDDEN, "Conta desativada", ex.getMessage());
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail dadosInvalidos(IllegalArgumentException ex) {
         return problema(HttpStatus.BAD_REQUEST, "Dados inválidos", ex.getMessage());

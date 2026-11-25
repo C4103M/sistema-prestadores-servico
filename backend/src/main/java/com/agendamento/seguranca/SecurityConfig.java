@@ -1,5 +1,7 @@
 package com.agendamento.seguranca;
 
+import com.agendamento.usuario.repository.UsuarioRepository;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,7 +32,8 @@ public class SecurityConfig {
     private List<String> allowedOrigins;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService,
+                                                   UsuarioRepository usuarioRepository) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable) // API stateless com Bearer token, sem cookie de sessão
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -47,7 +50,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/profissional/**").hasRole("PROFISSIONAL")
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(new JwtAuthenticationFilter(jwtService, usuarioRepository),
+                    UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
