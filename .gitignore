@@ -3,6 +3,8 @@ target/
 *.class
 *.log
 .mvn/wrapper/maven-wrapper.jar
+backend/uploads/
+uploads/
 
 # Frontend
 node_modules/

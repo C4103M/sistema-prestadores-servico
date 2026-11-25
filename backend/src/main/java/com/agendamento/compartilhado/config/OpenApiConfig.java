@@ -24,9 +24,10 @@ public class OpenApiConfig {
 
                                 **Atores e permissões:**
                                 - **Autenticação**: cadastro (`CLIENTE` e `PROFISSIONAL`), login e renovação de sessão JWT.
-                                - **Cliente**: busca de serviços/profissionais ativos, consulta de horários livres (`RN01`/`RN02`), reserva transacional com preço congelado (`RN05`) e cancelamento com antecedência mínima de 2h (`RN03`).
-                                - **Profissional**: manutenção de serviços e faixas de disponibilidade semanal, agenda diária, conclusão/falta (`RN04`, `RN06`), cancelamento sem regra de 2h e dashboard de métricas por período.
-                                - **Administrador**: gestão global de serviços e dashboard consolidado da plataforma.
+                                - **Cliente**: visualização de categorias com serviços ativos, busca de serviços/profissionais, consulta de horários livres (`RN01`/`RN02`), reserva transacional com preço congelado (`RN05`) e cancelamento com antecedência mínima de 2h (`RN03`).
+                                - **Profissional**: manutenção de serviços, sugestão de categorias (pendentes até aprovação do Admin), faixas de disponibilidade semanal, agenda diária, conclusão/falta (`RN04`, `RN06`), cancelamento sem regra de 2h e dashboard de métricas por período.
+                                - **Administrador**: ativação/desativação de usuários, gestão e aprovação de categorias/especialidades e dashboard consolidado da plataforma.
+                                - **Perfil & Uploads**: consulta/edição de dados pessoais e troca de senha para todos os perfis (`GET/PUT /api/perfil`, `PATCH /api/perfil/senha`) e envio de imagens de categoria (`POST /api/uploads/imagens`).
 
                                 **Autenticação:** clique em **Authorize** e informe o token JWT obtido em `POST /api/auth/login`.
                                 **Erros:** respostas de erro seguem RFC 7807 (`ProblemDetail`) com códigos `400`, `401`, `403`, `404` e `409`."""))

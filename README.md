@@ -1,6 +1,6 @@
 # AgendeFácil — Sistema de Agendamento para Prestadores de Serviço
 
-Aplicação web full-stack para agendamento de serviços entre **Clientes**, **Profissionais** (prestadores de serviço) e **Administradores**, com controle de disponibilidade semanal, detecção de conflitos, congelamento histórico de preços, agenda diária e dashboards de faturamento por período.
+Aplicação web full-stack para agendamento de serviços entre **Clientes**, **Profissionais** (prestadores de serviço) e **Administradores**, com vitrine visual por categorias, fluxo de aprovação de novas especialidades/categorias, upload de imagens no servidor, ativação/desativação de usuários, gestão de perfil (*Meus dados*), controle de disponibilidade semanal, detecção de conflitos, congelamento histórico de preços, agenda diária e dashboards de faturamento por período.
 
 ---
 
@@ -41,7 +41,7 @@ Aplicação web full-stack para agendamento de serviços entre **Clientes**, **P
    openssl rand -base64 48
    ```
 
-3. Suba PostgreSQL, backend e frontend:
+3. Suba PostgreSQL, backend e frontend (imagens enviadas são persistidas no volume Docker `uploads:/app/uploads`):
 
    ```bash
    docker compose up --build
@@ -99,11 +99,28 @@ Definidas em [`.env.example`](.env.example), [`frontend/.env.example`](frontend/
 | `JPA_SHOW_SQL` | Backend | `false` | Exibe SQL no log quando `true` |
 | `CORS_ALLOWED_ORIGINS` | Backend | `http://localhost:3000,http://localhost:3001,http://localhost:5173` | Origens permitidas no CORS |
 | `APP_SEED_ENABLED` | Backend | `true` | Popula dados iniciais pelo `DataSeeder` quando o banco está vazio |
+| `APP_UPLOAD_DIR` | Backend / Compose | `./uploads` (`/app/uploads` no Compose) | Diretório de armazenamento das imagens enviadas por upload |
 | `JWT_SECRET` | Backend *(obrigatória)* | — | Segredo HMAC-SHA256 para assinar tokens JWT |
 | `JWT_EXPIRACAO_MINUTOS` | Backend | `120` | Tempo de vida do token JWT em minutos |
 | `FRONTEND_PORT` | Compose | `3000` | Porta pública do container Nginx do frontend |
 | `VITE_API_URL` | Frontend | `/api` | Base URL das chamadas Axios (Nginx/Vite fazem proxy para o backend) |
 | `VITE_PORT` / `VITE_API_TARGET` | Frontend (dev) | `3000` / `http://localhost:8080` | Porta local do Vite e destino do proxy `/api` |
+
+---
+
+## Principais Funcionalidades por Perfil
+
+- **Cadastro e Perfil (*Meus dados*):**
+  - Cadastro de **Cliente** ou **Profissional** com confirmação de senha (`#/cadastro`) e sem exigência prévia de especialidade.
+  - Tela **Meus dados** em todas as áreas (`#/<ator>/perfil`) para editar nome, e-mail, telefone, especialidade (Profissional) e alterar senha com validação da senha atual (`GET/PUT /api/perfil`, `PATCH /api/perfil/senha`).
+- **Categorias/Especialidades e Vitrine Inicial:**
+  - Categorias têm `nome`, `shortDescription` e imagem (imagens iniciais em `frontend/public/imagens/categorias/` + upload real JPG/PNG/WEBP até 5 MB em `POST /api/uploads/imagens`).
+  - **Profissional** pode sugerir uma nova categoria ao cadastrar/editar um serviço; o serviço nasce editável (preço, duração, categoria etc.), porém permanece oculto aos clientes até que o **Admin** aprove a categoria. Caso o Admin rejeite, o Profissional pode editar o serviço e associá-lo a outra categoria.
+  - Na tela inicial do **Cliente** (`#/cliente/buscar`), são exibidos **cards visuais** apenas das categorias **aprovadas que possuem ao menos 1 serviço ativo**, filtrando a busca ao clicar.
+- **Administração (`ADMIN`):**
+  - **Usuários (`#/admin/usuarios`):** listagem, filtros e ativação/desativação de contas (desativar bloqueia login e revoga JWTs ativos imediatamente; serviços de profissionais desativados saem da busca).
+  - **Categorias (`#/admin/categorias`):** fila de aprovação/rejeição das sugestões de profissionais + criação (já aprovada) e edição de categorias com upload de imagem.
+  - **Dashboard (`#/admin/dashboard`):** indicadores operacionais e faturamento consolidado por período.
 
 ---
 
@@ -117,13 +134,13 @@ Com o backend em execução:
 ### Como autenticar no Swagger UI
 1. Execute `POST /api/auth/login` com uma das credenciais abaixo e copie o campo `token` da resposta.
 2. Clique em **Authorize** (canto superior direito do Swagger UI) e cole apenas o token no campo **bearerAuth**.
-3. As rotas estão organizadas por ator: **Autenticação**, **Cliente**, **Profissional**, **Administrador** e **Infraestrutura**. Erros de validação e regras de negócio seguem o formato **RFC 7807 (`ProblemDetail`)** (`400`, `401`, `403`, `404`, `409`).
+3. As rotas estão organizadas pelas tags **Autenticação**, **Cliente**, **Profissional**, **Administrador**, **Categorias**, **Uploads**, **Perfil** e **Infraestrutura**. Erros seguem **RFC 7807 (`ProblemDetail`)** (`400`, `401`, `403`, `404`, `409`).
 
 ---
 
 ## Credenciais de Demonstração (`DataSeeder`)
 
-Quando `APP_SEED_ENABLED=true` e a tabela de usuários está vazia, o [`DataSeeder`](backend/src/main/java/com/agendamento/compartilhado/config/DataSeeder.java) cria a massa inicial com a senha padrão **`123456`** para todas as contas:
+Quando `APP_SEED_ENABLED=true` e a tabela de usuários está vazia, o [`DataSeeder`](backend/src/main/java/com/agendamento/compartilhado/config/DataSeeder.java) cria as 4 categorias iniciais (`Barbearia`, `Estética`, `Elétrica`, `Outros`) e os usuários abaixo com senha padrão **`123456`**:
 
 | Perfil | E-mail | Área / Especialidade |
 |---|---|---|
@@ -151,9 +168,9 @@ Quando `APP_SEED_ENABLED=true` e a tabela de usuários está vazia, o [`DataSeed
 | Caso de Uso | Escopo | Especificação |
 |---|---|---|
 | **UC01 / US01** | Cadastro e autenticação JWT (`CLIENTE`, `PROFISSIONAL`, `ADMIN`) | [`US01-Cadastrar-se.docx`](docs/especificacao/US01-Cadastrar-se.docx) |
-| **UC02 / US02** | Busca de serviços/profissionais, horários livres e confirmação | [`US02-Agendar-atendimento.docx`](docs/especificacao/US02-Agendar-atendimento.docx) |
+| **UC02 / US02** | Busca por categorias/serviços/profissionais, horários livres e confirmação | [`US02-Agendar-atendimento.docx`](docs/especificacao/US02-Agendar-atendimento.docx) |
 | **UC03 / US03** | Cancelamento pelo Cliente (`RN03`) e pelo Profissional | [`US03-Cancelar-agendamento.docx`](docs/especificacao/US03-Cancelar-agendamento.docx) |
-| **UC04 / US04** | Manter serviços (Profissional e Admin) | [`US04-Manter-serviço.docx`](docs/especificacao/US04-Manter-serviço.docx) |
+| **UC04 / US04** | Manter serviços do Profissional | [`US04-Manter-serviço.docx`](docs/especificacao/US04-Manter-serviço.docx) |
 | **UC05 / US05** | Manter disponibilidade semanal (Profissional) | [`US05-Manter-disponibilidade.docx`](docs/especificacao/US05-Manter-disponibilidade.docx) |
 | **UC06 / US06** | Atualizar status do agendamento e agenda do dia | [`US06-Atualizar-status-do-agendamento.docx`](docs/especificacao/US06-Atualizar-status-do-agendamento.docx) |
 | **UC07 / US07** | Dashboard de faturamento e métricas por período (Profissional e Admin) | [`US07-Ver-dashboard.docx`](docs/especificacao/US07-Ver-dashboard.docx) |

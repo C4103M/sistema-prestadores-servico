@@ -30,9 +30,18 @@ class OpenApiIntegrationTest {
                 .andExpect(jsonPath("$.tags[*].name", hasItem("Cliente")))
                 .andExpect(jsonPath("$.tags[*].name", hasItem("Profissional")))
                 .andExpect(jsonPath("$.tags[*].name", hasItem("Administrador")))
+                .andExpect(jsonPath("$.tags[*].name", hasItem("Categorias")))
+                .andExpect(jsonPath("$.tags[*].name", hasItem("Uploads")))
+                .andExpect(jsonPath("$.tags[*].name", hasItem("Perfil")))
+                .andExpect(jsonPath("$.paths['/api/categorias']").exists())
+                .andExpect(jsonPath("$.paths['/api/cliente/categorias']").exists())
                 .andExpect(jsonPath("$.paths['/api/cliente/servicos/{servicoId}/horarios-livres']").exists())
                 .andExpect(jsonPath("$.paths['/api/profissional/{profissionalId}/dashboard']").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/usuarios']").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/categorias']").exists())
                 .andExpect(jsonPath("$.paths['/api/admin/dashboard']").exists())
+                .andExpect(jsonPath("$.paths['/api/perfil']").exists())
+                .andExpect(jsonPath("$.paths['/api/uploads/imagens']").exists())
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"));
     }
