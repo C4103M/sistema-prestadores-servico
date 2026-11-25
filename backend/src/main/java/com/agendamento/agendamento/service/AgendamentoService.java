@@ -48,7 +48,7 @@ public class AgendamentoService {
         Cliente cliente = clienteRepository.findById(clienteId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Cliente não encontrado: " + clienteId));
 
-        Profissional profissional = profissionalRepository.findById(dto.getProfissionalId())
+        Profissional profissional = profissionalRepository.findByIdForUpdate(dto.getProfissionalId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Profissional não encontrado: " + dto.getProfissionalId()));
 
         Servico servico = servicoRepository.findById(dto.getServicoId())

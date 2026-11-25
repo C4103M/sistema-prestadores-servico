@@ -1,11 +1,13 @@
-import { useMemo, useState } from 'react';
-import { CalendarCheck2, ChevronDown, Clock, Search, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CalendarCheck2, ChevronDown, Clock, RefreshCw, Search, X } from 'lucide-react';
 import type { Agendamento, Disponibilidade, Profissional, Servico } from '../types';
 import { PageHeader } from '../components/PageHeader';
 import { EmptyState } from '../components/EmptyState';
+import { ApiError, api, formatLocalDateTime } from '../services/api';
 import { dataCurta, duracao, hora, moeda } from '../services/formato';
-import { faixasDoDia, horariosLivres, temConflito, type Horario } from '../services/horarios';
-import { mockProfissionais } from '../services/mockData';
+import { faixasDoDia, type Horario } from '../services/horarios';
+
+const dataIso = (d: Date) => formatLocalDateTime(d).slice(0, 10);
 
 interface HomePageProps {
   clienteId: number;
@@ -57,7 +59,7 @@ export function HomePage({
   );
 
   // Busca por profissional: nome ou especialidade; mostra só quem tem serviço ativo na categoria
-  const listaProfissionais = profissionaisProp ?? mockProfissionais;
+  const listaProfissionais = profissionaisProp ?? [];
   const profissionais = listaProfissionais
     .filter((p) => !termo || [p.nome, p.especialidade ?? ''].some((c) => normalizar(c).includes(termo)))
     .map((p) => ({ ...p, servicos: ativos.filter((s) => s.profissionalId === p.id && naCategoria(s)) }))
@@ -241,7 +243,6 @@ export function HomePage({
               servico={selecionado}
               clienteId={clienteId}
               clienteNome={clienteNome}
-              agendamentos={agendamentos}
               disponibilidades={disponibilidades}
               onFechar={() => setSelecionadoId(null)}
               onConfirmar={onCriarAgendamento}
@@ -277,7 +278,6 @@ interface PainelAgendamentoProps {
   servico: Servico;
   clienteId: number;
   clienteNome: string;
-  agendamentos: Agendamento[];
   disponibilidades: Disponibilidade[];
   onFechar: () => void;
   onConfirmar: (novo: Agendamento) => Promise<Agendamento>;
@@ -288,7 +288,6 @@ function PainelAgendamento({
   servico,
   clienteId,
   clienteNome,
-  agendamentos,
   disponibilidades,
   onFechar,
   onConfirmar,
@@ -305,16 +304,65 @@ function PainelAgendamento({
     []
   );
 
-  const livresPorDia = dias.map((d) => horariosLivres(servico, d, disponibilidades, agendamentos));
-  const primeiroComHorario = Math.max(0, livresPorDia.findIndex((l) => l.length > 0));
-
-  const [diaIdx, setDiaIdx] = useState(primeiroComHorario);
+  const [slotsPorDia, setSlotsPorDia] = useState<Record<string, Horario[]> | null>(null);
+  const [carregandoHorarios, setCarregandoHorarios] = useState(true);
+  const [erroHorarios, setErroHorarios] = useState('');
+  const [diaIdx, setDiaIdx] = useState(0);
   const [escolhido, setEscolhido] = useState<Horario | null>(null);
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [confirmado, setConfirmado] = useState<Agendamento | null>(null);
 
-  const livres = livresPorDia[diaIdx];
+  const carregarHorarios = useCallback(
+    async (autoSelecionarDia: boolean) => {
+      setCarregandoHorarios(true);
+      setErroHorarios('');
+      try {
+        const lista = await api.cliente.listarHorariosLivres(
+          servico.id,
+          dataIso(dias[0]),
+          dataIso(dias[dias.length - 1])
+        );
+        const mapa: Record<string, Horario[]> = {};
+        for (const item of lista) {
+          const chave = item.dataHoraInicio.slice(0, 10);
+          mapa[chave] ??= [];
+          mapa[chave].push({
+            inicio: new Date(item.dataHoraInicio),
+            fim: new Date(item.dataHoraFim),
+          });
+        }
+        setSlotsPorDia(mapa);
+        if (autoSelecionarDia) {
+          const primeiroComHorario = Math.max(
+            0,
+            dias.findIndex((d) => (mapa[dataIso(d)] ?? []).length > 0)
+          );
+          setDiaIdx(primeiroComHorario);
+        }
+      } catch (err) {
+        setErroHorarios(
+          err instanceof ApiError || err instanceof Error
+            ? err.message
+            : 'Não foi possível carregar os horários livres.'
+        );
+      } finally {
+        setCarregandoHorarios(false);
+      }
+    },
+    [servico.id, dias]
+  );
+
+  useEffect(() => {
+    void carregarHorarios(true);
+  }, [carregarHorarios]);
+
+  const livresPorDia = useMemo(
+    () => dias.map((d) => (slotsPorDia ? slotsPorDia[dataIso(d)] ?? [] : [])),
+    [dias, slotsPorDia]
+  );
+
+  const livres = livresPorDia[diaIdx] ?? [];
   const atende = faixasDoDia(disponibilidades, servico.profissionalId, dias[diaIdx]).length > 0;
 
   const grupos = [
@@ -325,12 +373,6 @@ function PainelAgendamento({
 
   const confirmar = async () => {
     if (!escolhido || enviando) return;
-    // E2: o horário pode ter sido ocupado enquanto o cliente decidia
-    if (temConflito(agendamentos, servico.profissionalId, escolhido.inicio, escolhido.fim)) {
-      setErro('Este horário acabou de ser ocupado. Escolha outro.');
-      setEscolhido(null);
-      return;
-    }
     const novo: Agendamento = {
       id: Date.now(),
       clienteId,
@@ -339,11 +381,11 @@ function PainelAgendamento({
       profissionalNome: servico.profissionalNome,
       servicoId: servico.id,
       servicoNome: servico.nome,
-      dataHoraInicio: escolhido.inicio.toISOString(),
-      dataHoraFim: escolhido.fim.toISOString(),
+      dataHoraInicio: formatLocalDateTime(escolhido.inicio),
+      dataHoraFim: formatLocalDateTime(escolhido.fim),
       preco: servico.preco, // RN05: preço congelado no agendamento
       status: 'AGENDADO',
-      criadoEm: new Date().toISOString(),
+      criadoEm: formatLocalDateTime(new Date()),
     };
     setEnviando(true);
     setErro('');
@@ -351,8 +393,14 @@ function PainelAgendamento({
       const salvo = await onConfirmar(novo);
       setConfirmado(salvo);
     } catch (e) {
-      setErro(e instanceof Error ? e.message : 'Não foi possível confirmar o agendamento.');
-      setEscolhido(null);
+      if (e instanceof ApiError && e.status === 409) {
+        setErro('Este horário acabou de ser ocupado. Escolha outro.');
+        setEscolhido(null);
+        void carregarHorarios(false);
+      } else {
+        setErro(e instanceof Error ? e.message : 'Não foi possível confirmar o agendamento.');
+        setEscolhido(null);
+      }
     } finally {
       setEnviando(false);
     }
@@ -413,88 +461,109 @@ function PainelAgendamento({
       </div>
 
       <div className="space-y-5 p-5">
-        <fieldset>
-          <legend className="label">Dia</legend>
-          <div className="grid grid-cols-7 gap-1">
-            {dias.map((d, i) => {
-              const sem = livresPorDia[i].length === 0;
-              const ativo = i === diaIdx;
-              return (
-                <button
-                  key={d.toISOString()}
-                  type="button"
-                  disabled={sem}
-                  aria-pressed={ativo}
-                  aria-label={`${d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric' })}${sem ? ', sem horários' : ''}`}
-                  onClick={() => {
-                    setDiaIdx(i);
-                    setEscolhido(null);
-                    setErro('');
-                  }}
-                  className={`flex h-14 flex-col items-center justify-center rounded-lg border text-xs transition-colors duration-150 ${
-                    ativo
-                      ? 'border-ink bg-ink text-white'
-                      : sem
-                        ? 'border-transparent text-faint line-through decoration-faint/60'
-                        : 'border-transparent text-ink hover:bg-ink-soft'
-                  }`}
-                >
-                  <span className={ativo ? 'text-white/80' : 'text-muted'}>
-                    {i === 0 ? 'Hoje' : d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
-                  </span>
-                  <span className="tabular text-base font-bold">{d.getDate()}</span>
-                </button>
-              );
-            })}
+        {slotsPorDia === null && carregandoHorarios ? (
+          <p role="status" className="rounded-lg bg-paper p-4 text-sm text-muted">
+            Buscando horários livres…
+          </p>
+        ) : slotsPorDia === null && erroHorarios ? (
+          <div role="alert" className="space-y-3 rounded-lg border border-danger/25 bg-faltou-soft p-4 text-sm text-danger">
+            <p className="font-semibold">{erroHorarios}</p>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void carregarHorarios(true)}>
+              <RefreshCw className="size-3.5" aria-hidden />
+              Tentar novamente
+            </button>
           </div>
-        </fieldset>
+        ) : (
+          <>
+            <fieldset>
+              <legend className="label">Dia</legend>
+              <div className="grid grid-cols-7 gap-1">
+                {dias.map((d, i) => {
+                  const sem = livresPorDia[i].length === 0;
+                  const ativo = i === diaIdx;
+                  return (
+                    <button
+                      key={dataIso(d)}
+                      type="button"
+                      disabled={sem}
+                      aria-pressed={ativo}
+                      aria-label={`${d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric' })}${sem ? ', sem horários' : ''}`}
+                      onClick={() => {
+                        setDiaIdx(i);
+                        setEscolhido(null);
+                        setErro('');
+                      }}
+                      className={`flex h-14 flex-col items-center justify-center rounded-lg border text-xs transition-colors duration-150 ${
+                        ativo
+                          ? 'border-ink bg-ink text-white'
+                          : sem
+                            ? 'border-transparent text-faint line-through decoration-faint/60'
+                            : 'border-transparent text-ink hover:bg-ink-soft'
+                      }`}
+                    >
+                      <span className={ativo ? 'text-white/80' : 'text-muted'}>
+                        {i === 0 ? 'Hoje' : d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
+                      </span>
+                      <span className="tabular text-base font-bold">{d.getDate()}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
 
-        <fieldset>
-          <legend className="label">Horários livres</legend>
-          {livres.length === 0 ? (
-            <p className="rounded-lg bg-paper p-4 text-sm text-muted">
-              {atende
-                ? 'A agenda deste dia já está cheia. Escolha outro dia.'
-                : `${servico.profissionalNome} não atende neste dia.`}
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {grupos.map((g) => (
-                <div key={g.rotulo}>
-                  <p className="mb-1.5 text-xs font-semibold text-muted">{g.rotulo}</p>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {g.itens.map((h) => {
-                      const ativo = escolhido?.inicio.getTime() === h.inicio.getTime();
-                      return (
-                        <button
-                          key={h.inicio.toISOString()}
-                          type="button"
-                          aria-pressed={ativo}
-                          onClick={() => {
-                            setEscolhido(h);
-                            setErro('');
-                          }}
-                          className={`tabular h-9 rounded-md border text-sm font-semibold transition-colors duration-150 ${
-                            ativo
-                              ? 'border-marker bg-marker text-white'
-                              : 'border-rule bg-surface text-ink hover:border-ink'
-                          }`}
-                        >
-                          {hora(h.inicio)}
-                        </button>
-                      );
-                    })}
-                  </div>
+            <fieldset>
+              <legend className="label">Horários livres</legend>
+              {livres.length === 0 ? (
+                <p className="rounded-lg bg-paper p-4 text-sm text-muted">
+                  {atende
+                    ? 'A agenda deste dia já está cheia. Escolha outro dia.'
+                    : `${servico.profissionalNome} não atende neste dia.`}
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {grupos.map((g) => (
+                    <div key={g.rotulo}>
+                      <p className="mb-1.5 text-xs font-semibold text-muted">{g.rotulo}</p>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {g.itens.map((h) => {
+                          const ativo = escolhido?.inicio.getTime() === h.inicio.getTime();
+                          return (
+                            <button
+                              key={h.inicio.toISOString()}
+                              type="button"
+                              aria-pressed={ativo}
+                              onClick={() => {
+                                setEscolhido(h);
+                                setErro('');
+                              }}
+                              className={`tabular h-9 rounded-md border text-sm font-semibold transition-colors duration-150 ${
+                                ativo
+                                  ? 'border-marker bg-marker text-white'
+                                  : 'border-rule bg-surface text-ink hover:border-ink'
+                              }`}
+                            >
+                              {hora(h.inicio)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-          {erro && (
-            <p className="erro-campo" role="alert">
-              {erro}
-            </p>
-          )}
-        </fieldset>
+              )}
+              {erroHorarios && (
+                <p className="erro-campo" role="alert">
+                  {erroHorarios}
+                </p>
+              )}
+              {erro && (
+                <p className="erro-campo" role="alert">
+                  {erro}
+                </p>
+              )}
+            </fieldset>
+          </>
+        )}
       </div>
 
       <div className="border-t border-rule bg-paper p-5">

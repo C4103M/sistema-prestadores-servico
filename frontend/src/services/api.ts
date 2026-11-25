@@ -155,6 +155,10 @@ export const api = {
       );
       return lista.map(normalizarDisponibilidade);
     },
+    listarHorariosLivres: (servicoId: number, de: string, ate: string) =>
+      request<{ dataHoraInicio: string; dataHoraFim: string }[]>(() =>
+        http.get(`/cliente/servicos/${servicoId}/horarios-livres`, { params: { de, ate } })
+      ),
     listarHorariosOcupados: (profissionalId: number, de?: string, ate?: string) =>
       request<{ dataHoraInicio: string; dataHoraFim: string }[]>(() =>
         http.get(`/cliente/profissionais/${profissionalId}/horarios-ocupados`, { params: { de, ate } })

@@ -14,10 +14,11 @@ public interface ServicoRepository extends JpaRepository<Servico, Long> {
     List<Servico> findByProfissionalId(Long profissionalId);
     List<Servico> findByProfissionalIdAndAtivoTrue(Long profissionalId);
 
-    // Busca do cliente: o termo pode ser o nome do serviço, a descrição ou o nome do profissional
+    // Busca do cliente: o termo pode ser o nome do serviço, a descrição, a categoria ou o nome do profissional
     @Query("SELECT s FROM Servico s WHERE s.ativo = true AND (" +
            "LOWER(s.nome) LIKE LOWER(CONCAT('%', :termo, '%')) OR " +
-           "LOWER(s.descricao) LIKE LOWER(CONCAT('%', :termo, '%')) OR " +
+           "LOWER(COALESCE(s.descricao, '')) LIKE LOWER(CONCAT('%', :termo, '%')) OR " +
+           "LOWER(COALESCE(s.categoria, '')) LIKE LOWER(CONCAT('%', :termo, '%')) OR " +
            "LOWER(s.profissional.nome) LIKE LOWER(CONCAT('%', :termo, '%'))) " +
            "ORDER BY s.nome")
     List<Servico> buscarAtivos(@Param("termo") String termo);

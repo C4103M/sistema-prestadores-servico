@@ -2,8 +2,10 @@ package com.agendamento.cliente.controller;
 
 import com.agendamento.agendamento.dto.request.AgendamentoRequest;
 import com.agendamento.agendamento.dto.response.AgendamentoResponse;
+import com.agendamento.agendamento.dto.response.HorarioLivreResponse;
 import com.agendamento.agendamento.dto.response.HorarioOcupadoResponse;
 import com.agendamento.agendamento.service.AgendamentoService;
+import com.agendamento.agendamento.service.HorarioService;
 import com.agendamento.disponibilidade.dto.DisponibilidadeDTO;
 import com.agendamento.disponibilidade.service.DisponibilidadeService;
 import com.agendamento.profissional.dto.response.ProfissionalResponse;
@@ -35,6 +37,7 @@ public class ClienteController {
     private final ProfissionalService profissionalService;
     private final DisponibilidadeService disponibilidadeService;
     private final AgendamentoService agendamentoService;
+    private final HorarioService horarioService;
 
     /** Busca por serviço: o termo casa com o nome, a descrição ou o profissional do serviço. */
     @GetMapping("/servicos")
@@ -52,6 +55,21 @@ public class ClienteController {
     @GetMapping("/profissionais/{profissionalId}/disponibilidades")
     public List<DisponibilidadeDTO> disponibilidades(@PathVariable Long profissionalId) {
         return disponibilidadeService.listarPorProfissional(profissionalId);
+    }
+
+    /** Horários livres calculados no servidor para o serviço na data ou período (RN01/RN02). */
+    @GetMapping("/servicos/{servicoId}/horarios-livres")
+    public List<HorarioLivreResponse> horariosLivres(
+            @PathVariable Long servicoId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate de,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ate) {
+        if (data != null) {
+            return horarioService.listarHorariosLivres(servicoId, data);
+        }
+        LocalDate inicio = de != null ? de : LocalDate.now();
+        LocalDate fim = ate != null ? ate : inicio;
+        return horarioService.listarHorariosLivres(servicoId, inicio, fim);
     }
 
     /**

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { RefreshCw, X } from 'lucide-react';
 import { AppShell, NAV } from './components/AppShell';
 import { InicioPage } from './pages/InicioPage';
@@ -11,7 +11,7 @@ import { ServicosPage } from './pages/ServicosPage';
 import { DisponibilidadePage } from './pages/DisponibilidadePage';
 import { DashboardPage } from './pages/DashboardPage';
 import { useAuth } from './context/AuthContext';
-import { ApiError, api, formatLocalDateTime } from './services/api';
+import { ApiError, api } from './services/api';
 import { areaDoPapel, telaInicial, type Sessao } from './services/sessao';
 import type {
   Agendamento,
@@ -39,39 +39,6 @@ const areaDa = (tela: Tela) => tela.split('/')[0] as Area;
 
 const mensagemDeErro = (err: unknown, fallback: string) =>
   err instanceof ApiError || err instanceof Error ? err.message : fallback;
-
-// O cliente só enxerga os próprios agendamentos; para montar os horários livres ele recebe
-// da API apenas os intervalos ocupados de cada profissional (sem nomes de outros clientes).
-const JANELA_OCUPADOS_DIAS = 14;
-const dataIso = (d: Date) => formatLocalDateTime(d).slice(0, 10);
-
-async function buscarOcupados(profs: Profissional[]): Promise<Agendamento[]> {
-  const hoje = new Date();
-  const fim = new Date();
-  fim.setDate(fim.getDate() + JANELA_OCUPADOS_DIAS);
-  const listas = await Promise.all(
-    profs.map((p) => api.cliente.listarHorariosOcupados(p.id, dataIso(hoje), dataIso(fim)))
-  );
-  let n = 0;
-  return listas.flatMap((lista, i) =>
-    lista.map(
-      (o): Agendamento => ({
-        id: -(++n), // id negativo: nunca colide com um agendamento real
-        clienteId: 0,
-        clienteNome: '',
-        profissionalId: profs[i].id,
-        profissionalNome: profs[i].nome,
-        servicoId: 0,
-        servicoNome: '',
-        dataHoraInicio: o.dataHoraInicio,
-        dataHoraFim: o.dataHoraFim,
-        preco: 0,
-        status: 'AGENDADO',
-        criadoEm: o.dataHoraInicio,
-      })
-    )
-  );
-}
 
 export function App() {
   const { sessao } = useAuth();
@@ -117,7 +84,6 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
-  const [ocupados, setOcupados] = useState<Agendamento[]>([]);
   const [disponibilidades, setDisponibilidades] = useState<Disponibilidade[]>([]);
   const [carregando, setCarregando] = useState(false);
   const [carregado, setCarregado] = useState(false);
@@ -133,15 +99,13 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
           api.cliente.buscarServicos(),
           api.cliente.listarAgendamentos(perfilId),
         ]);
-        const [listasDisp, listaOcupados] = await Promise.all([
-          Promise.all(profs.map((p) => api.cliente.listarDisponibilidades(p.id))),
-          buscarOcupados(profs),
-        ]);
+        const listasDisp = await Promise.all(
+          profs.map((p) => api.cliente.listarDisponibilidades(p.id))
+        );
         setProfissionais(profs);
         setServicos(listaServicos);
         setAgendamentos(meus);
         setDisponibilidades(listasDisp.flat());
-        setOcupados(listaOcupados);
       } else if (sessao.papel === 'PROFISSIONAL') {
         const [meusServicos, agenda, faixas] = await Promise.all([
           api.profissional.listarServicos(perfilId),
@@ -174,9 +138,6 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
       void carregarDados();
     }
   }, [carregado, carregarDados]);
-
-  // Busca do cliente: seus agendamentos + os intervalos ocupados dos profissionais
-  const agendamentosParaBusca = useMemo(() => [...agendamentos, ...ocupados], [agendamentos, ocupados]);
 
   const navegar = (destino: Tela) => {
     window.location.hash = `/${destino}`;
@@ -303,10 +264,6 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
         return;
       }
       setAgendamentos((prev) => prev.map((a) => (a.id === id ? atualizado : a)));
-      // O horário cancelado volta a ficar livre para o cliente
-      if (status === 'CANCELADO' && area === 'cliente') {
-        setOcupados(await buscarOcupados(profissionais));
-      }
     } catch (err) {
       setErroApi(mensagemDeErro(err, 'Não foi possível atualizar o agendamento.'));
       if (status === 'CANCELADO') throw err;
@@ -351,7 +308,7 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
               clienteId={perfilId}
               clienteNome={sessao.nome}
               servicos={servicos}
-              agendamentos={agendamentosParaBusca}
+              agendamentos={agendamentos}
               disponibilidades={disponibilidades}
               profissionais={profissionais}
               onCriarAgendamento={criarAgendamento}
