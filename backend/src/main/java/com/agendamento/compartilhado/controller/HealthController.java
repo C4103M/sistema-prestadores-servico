@@ -5,6 +5,11 @@ import com.agendamento.cliente.repository.ClienteRepository;
 import com.agendamento.profissional.repository.ProfissionalRepository;
 import com.agendamento.servico.repository.ServicoRepository;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+@Tag(name = "Infraestrutura", description = "Verificação de saúde da API e do banco de dados")
 @RestController
 @RequestMapping("/api/health")
 @RequiredArgsConstructor
@@ -25,6 +31,12 @@ public class HealthController {
     private final ServicoRepository servicoRepository;
     private final AgendamentoRepository agendamentoRepository;
 
+    @Operation(summary = "Healthcheck da aplicação", description = "Verifica conectividade com o banco e retorna contadores resumidos.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "API e banco operacionais"),
+            @ApiResponse(responseCode = "503", description = "Banco de dados indisponível")
+    })
+    @SecurityRequirements
     @GetMapping
     public ResponseEntity<Map<String, Object>> status() {
         try {
