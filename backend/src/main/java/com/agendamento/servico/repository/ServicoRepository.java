@@ -13,12 +13,44 @@ public interface ServicoRepository extends JpaRepository<Servico, Long> {
     List<Servico> findByAtivoTrue();
     List<Servico> findByProfissionalId(Long profissionalId);
     List<Servico> findByProfissionalIdAndAtivoTrue(Long profissionalId);
+    List<Servico> findByCategoriaEntidadeIsNull();
 
-    // Busca do cliente: o termo pode ser o nome do serviço, a descrição, a categoria ou o nome do profissional
-    @Query("SELECT s FROM Servico s WHERE s.ativo = true AND (" +
+    @Query("SELECT s FROM Servico s WHERE s.ativo = true " +
+           "AND s.profissional.usuario.ativo = true " +
+           "AND s.categoriaEntidade.status = com.agendamento.categoria.model.StatusCategoria.APROVADA " +
+           "ORDER BY s.nome")
+    List<Servico> findPublicosAtivos();
+
+    @Query("SELECT s FROM Servico s WHERE s.profissional.id = :profissionalId " +
+           "AND s.ativo = true AND s.profissional.usuario.ativo = true " +
+           "AND s.categoriaEntidade.status = com.agendamento.categoria.model.StatusCategoria.APROVADA " +
+           "ORDER BY s.nome")
+    List<Servico> findPublicosAtivosByProfissionalId(@Param("profissionalId") Long profissionalId);
+
+    @Query("SELECT COUNT(s) FROM Servico s WHERE s.ativo = true " +
+           "AND s.profissional.usuario.ativo = true " +
+           "AND s.categoriaEntidade.status = com.agendamento.categoria.model.StatusCategoria.APROVADA")
+    long countPublicosAtivos();
+
+    @Query("SELECT s.categoriaEntidade.id, COUNT(s) FROM Servico s WHERE s.ativo = true " +
+           "AND s.profissional.usuario.ativo = true " +
+           "AND s.categoriaEntidade.status = com.agendamento.categoria.model.StatusCategoria.APROVADA " +
+           "GROUP BY s.categoriaEntidade.id")
+    List<Object[]> countPublicosAtivosPorCategoria();
+
+    @Query("SELECT s.categoriaEntidade.id, COUNT(s) FROM Servico s WHERE s.ativo = true " +
+           "AND s.profissional.usuario.ativo = true " +
+           "AND s.categoriaEntidade IS NOT NULL " +
+           "GROUP BY s.categoriaEntidade.id")
+    List<Object[]> countServicosAtivosPorCategoria();
+
+    // Busca do cliente: apenas serviços ativos de profissionais ativos e com categoria aprovada
+    @Query("SELECT s FROM Servico s WHERE s.ativo = true " +
+           "AND s.profissional.usuario.ativo = true " +
+           "AND s.categoriaEntidade.status = com.agendamento.categoria.model.StatusCategoria.APROVADA AND (" +
            "LOWER(s.nome) LIKE LOWER(CONCAT('%', :termo, '%')) OR " +
            "LOWER(COALESCE(s.descricao, '')) LIKE LOWER(CONCAT('%', :termo, '%')) OR " +
-           "LOWER(COALESCE(s.categoria, '')) LIKE LOWER(CONCAT('%', :termo, '%')) OR " +
+           "LOWER(s.categoriaEntidade.nome) LIKE LOWER(CONCAT('%', :termo, '%')) OR " +
            "LOWER(s.profissional.nome) LIKE LOWER(CONCAT('%', :termo, '%'))) " +
            "ORDER BY s.nome")
     List<Servico> buscarAtivos(@Param("termo") String termo);

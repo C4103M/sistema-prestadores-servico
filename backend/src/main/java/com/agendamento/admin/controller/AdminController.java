@@ -1,14 +1,13 @@
 package com.agendamento.admin.controller;
 
 import com.agendamento.admin.dto.response.AdminDashboardResponse;
-import com.agendamento.agendamento.dto.response.AgendamentoResponse;
 import com.agendamento.agendamento.service.AgendamentoService;
-import com.agendamento.profissional.dto.response.ProfissionalResponse;
+import com.agendamento.categoria.dto.CategoriaRequest;
+import com.agendamento.categoria.dto.CategoriaResponse;
+import com.agendamento.categoria.service.CategoriaService;
 import com.agendamento.profissional.repository.ProfissionalRepository;
-import com.agendamento.profissional.service.ProfissionalService;
-import com.agendamento.servico.dto.ServicoDTO;
+import com.agendamento.seguranca.UsuarioAutenticado;
 import com.agendamento.servico.repository.ServicoRepository;
-import com.agendamento.servico.service.ServicoService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -22,101 +21,86 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Endpoints do ator Admin, com visão de toda a plataforma.
- * UC: Manter serviço (de qualquer profissional) e Ver dashboard (geral).
+ * Endpoints do ator Admin: gestão de categorias, aprovação de especialidades,
+ * usuários e dashboard consolidado da plataforma.
  */
-@Tag(name = "Administrador", description = "Gestão global de serviços, profissionais e dashboard consolidado da plataforma")
+@Tag(name = "Administrador", description = "Gestão de categorias/especialidades, usuários e dashboard consolidado da plataforma")
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
 public class AdminController {
 
-    private final ServicoService servicoService;
-    private final ProfissionalService profissionalService;
     private final AgendamentoService agendamentoService;
     private final ProfissionalRepository profissionalRepository;
     private final ServicoRepository servicoRepository;
+    private final CategoriaService categoriaService;
 
-    @Operation(summary = "Listar todos os profissionais")
+    // ---- Categorias / Especialidades
+    @Operation(summary = "Listar todas as categorias (pendentes primeiro)")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Lista de profissionais"),
+            @ApiResponse(responseCode = "200", description = "Lista de categorias"),
             @ApiResponse(responseCode = "401", description = "Não autenticado"),
             @ApiResponse(responseCode = "403", description = "Acesso restrito a Administrador")
     })
-    @GetMapping("/profissionais")
-    public List<ProfissionalResponse> profissionais() {
-        return profissionalService.listarTodos();
+    @GetMapping("/categorias")
+    public List<CategoriaResponse> categorias() {
+        return categoriaService.listarTodasAdmin();
     }
 
-    // ---- Manter serviço
-    @Operation(summary = "Listar todos os serviços da plataforma")
-    @GetMapping("/servicos")
-    public List<ServicoDTO> servicos() {
-        return servicoService.listarTodos();
-    }
-
-    @Operation(summary = "Cadastrar serviço para qualquer profissional")
+    @Operation(summary = "Cadastrar categoria já aprovada")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Serviço criado"),
+            @ApiResponse(responseCode = "201", description = "Categoria criada como APROVADA"),
             @ApiResponse(responseCode = "400", description = "Campos inválidos", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
-            @ApiResponse(responseCode = "404", description = "Profissional não encontrado", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+            @ApiResponse(responseCode = "409", description = "Já existe categoria com este nome", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     })
-    @PostMapping("/servicos")
-    public ResponseEntity<ServicoDTO> criarServico(@Valid @RequestBody ServicoDTO dto) {
-        if (dto.getProfissionalId() == null) {
-            throw new IllegalArgumentException("Informe o profissional responsável pelo serviço.");
-        }
-        return ResponseEntity.status(HttpStatus.CREATED).body(servicoService.criar(dto));
+    @PostMapping("/categorias")
+    public ResponseEntity<CategoriaResponse> criarCategoria(
+            @AuthenticationPrincipal UsuarioAutenticado atual,
+            @Valid @RequestBody CategoriaRequest dto) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(categoriaService.criarPeloAdmin(atual.getUsuarioId(), dto));
     }
 
-    @Operation(summary = "Atualizar serviço como administrador")
+    @Operation(summary = "Atualizar dados da categoria")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Serviço atualizado"),
+            @ApiResponse(responseCode = "200", description = "Categoria atualizada"),
             @ApiResponse(responseCode = "400", description = "Campos inválidos", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
-            @ApiResponse(responseCode = "404", description = "Serviço ou profissional não encontrado", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
-            @ApiResponse(responseCode = "409", description = "Tentativa de trocar profissional com agendamentos vinculados", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+            @ApiResponse(responseCode = "404", description = "Categoria não encontrada", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "409", description = "Já existe categoria com este nome", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     })
-    @PutMapping("/servicos/{id}")
-    public ServicoDTO atualizarServico(@PathVariable Long id, @Valid @RequestBody ServicoDTO dto) {
-        return servicoService.atualizarComoAdmin(id, dto);
+    @PutMapping("/categorias/{id}")
+    public CategoriaResponse atualizarCategoria(@PathVariable Long id, @Valid @RequestBody CategoriaRequest dto) {
+        return categoriaService.atualizarPeloAdmin(id, dto);
     }
 
-    @Operation(summary = "Ativar ou desativar serviço")
+    @Operation(summary = "Aprovar categoria pendente ou rejeitada")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Status alterado"),
-            @ApiResponse(responseCode = "404", description = "Serviço não encontrado", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+            @ApiResponse(responseCode = "200", description = "Categoria aprovada"),
+            @ApiResponse(responseCode = "404", description = "Categoria não encontrada", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     })
-    @PatchMapping("/servicos/{id}/status")
-    public ResponseEntity<Void> alternarServico(@PathVariable Long id) {
-        servicoService.alternarStatus(id);
-        return ResponseEntity.noContent().build();
+    @PatchMapping("/categorias/{id}/aprovar")
+    public CategoriaResponse aprovarCategoria(@PathVariable Long id) {
+        return categoriaService.aprovar(id);
     }
 
-    @Operation(summary = "Excluir serviço sem agendamentos")
+    @Operation(summary = "Rejeitar categoria")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Serviço excluído"),
-            @ApiResponse(responseCode = "404", description = "Serviço não encontrado", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
-            @ApiResponse(responseCode = "409", description = "Serviço possui agendamentos vinculados", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+            @ApiResponse(responseCode = "200", description = "Categoria rejeitada"),
+            @ApiResponse(responseCode = "404", description = "Categoria não encontrada", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     })
-    @DeleteMapping("/servicos/{id}")
-    public ResponseEntity<Void> excluirServico(@PathVariable Long id) {
-        servicoService.excluir(id);
-        return ResponseEntity.noContent().build();
+    @PatchMapping("/categorias/{id}/rejeitar")
+    public CategoriaResponse rejeitarCategoria(@PathVariable Long id) {
+        return categoriaService.rejeitar(id);
     }
 
-    // ---- Agendamentos e Dashboard (toda a plataforma)
-    @Operation(summary = "Listar todos os agendamentos da plataforma")
-    @GetMapping("/agendamentos")
-    public List<AgendamentoResponse> agendamentos() {
-        return agendamentoService.listarTodos();
-    }
-
+    // ---- Dashboard (toda a plataforma)
     @Operation(summary = "Obter dashboard consolidado da plataforma", description = "Consolida métricas gerais e faturamento por profissional com filtro opcional por período (de/ate).")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Métricas consolidadas da plataforma"),
@@ -127,6 +111,6 @@ public class AdminController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate de,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ate) {
         return agendamentoService.obterDashboardGeral(
-                profissionalRepository.count(), servicoRepository.findByAtivoTrue().size(), de, ate);
+                profissionalRepository.count(), servicoRepository.countPublicosAtivos(), de, ate);
     }
 }

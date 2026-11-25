@@ -23,9 +23,16 @@ public class Usuario {
     @Column(nullable = false)
     private String senha;
 
+    @Column(length = 120)
+    private String nome;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PapelUsuario papel;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean ativo = true;
 
     @Column(name = "criado_em", nullable = false, updatable = false)
     @Builder.Default

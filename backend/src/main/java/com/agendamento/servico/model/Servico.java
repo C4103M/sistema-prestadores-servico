@@ -1,5 +1,6 @@
 package com.agendamento.servico.model;
 
+import com.agendamento.categoria.model.Categoria;
 import com.agendamento.profissional.model.Profissional;
 
 import jakarta.persistence.*;
@@ -25,8 +26,12 @@ public class Servico {
     @Column(length = 1000)
     private String descricao;
 
-    // Usada pelo cliente para filtrar a busca (Barbearia, Estética, Elétrica...)
+    // Nome da categoria sincronizado para consulta e compatibilidade
     private String categoria;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "categoria_id")
+    private Categoria categoriaEntidade;
 
     @Column(name = "duracao_minutos", nullable = false)
     private Integer duracaoMinutos;

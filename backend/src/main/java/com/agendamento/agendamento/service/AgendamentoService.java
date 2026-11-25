@@ -8,6 +8,7 @@ import com.agendamento.agendamento.dto.response.HorarioOcupadoResponse;
 import com.agendamento.agendamento.model.Agendamento;
 import com.agendamento.agendamento.model.StatusAgendamento;
 import com.agendamento.agendamento.repository.AgendamentoRepository;
+import com.agendamento.categoria.model.StatusCategoria;
 import com.agendamento.cliente.model.Cliente;
 import com.agendamento.cliente.repository.ClienteRepository;
 import com.agendamento.compartilhado.exceptions.RecursoNaoEncontradoException;
@@ -54,8 +55,12 @@ public class AgendamentoService {
         Servico servico = servicoRepository.findById(dto.getServicoId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Serviço não encontrado: " + dto.getServicoId()));
 
-        if (!servico.getProfissional().getId().equals(profissional.getId()) || !Boolean.TRUE.equals(servico.getAtivo())) {
-            throw new IllegalArgumentException("O serviço escolhido não é oferecido por este profissional.");
+        if (!servico.getProfissional().getId().equals(profissional.getId())
+                || !Boolean.TRUE.equals(servico.getAtivo())
+                || !Boolean.TRUE.equals(profissional.getUsuario().getAtivo())
+                || servico.getCategoriaEntidade() == null
+                || servico.getCategoriaEntidade().getStatus() != StatusCategoria.APROVADA) {
+            throw new IllegalArgumentException("O serviço escolhido não é oferecido ou ainda não está disponível.");
         }
 
         LocalDateTime inicio = dto.getDataHoraInicio();

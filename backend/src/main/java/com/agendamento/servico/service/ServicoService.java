@@ -1,7 +1,9 @@
 package com.agendamento.servico.service;
 
-import com.agendamento.compartilhado.exceptions.RecursoNaoEncontradoException;
 import com.agendamento.agendamento.repository.AgendamentoRepository;
+import com.agendamento.categoria.model.Categoria;
+import com.agendamento.categoria.service.CategoriaService;
+import com.agendamento.compartilhado.exceptions.RecursoNaoEncontradoException;
 import com.agendamento.profissional.model.Profissional;
 import com.agendamento.profissional.repository.ProfissionalRepository;
 import com.agendamento.servico.dto.ServicoDTO;
@@ -22,10 +24,11 @@ public class ServicoService {
     private final ServicoRepository servicoRepository;
     private final ProfissionalRepository profissionalRepository;
     private final AgendamentoRepository agendamentoRepository;
+    private final CategoriaService categoriaService;
 
     @Transactional(readOnly = true)
     public List<ServicoDTO> listarTodosAtivos() {
-        return servicoRepository.findByAtivoTrue().stream()
+        return servicoRepository.findPublicosAtivos().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
@@ -68,11 +71,14 @@ public class ServicoService {
     public ServicoDTO criar(ServicoDTO dto) {
         Profissional profissional = profissionalRepository.findById(dto.getProfissionalId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Profissional não encontrado: " + dto.getProfissionalId()));
+        Categoria categoria = categoriaService.resolverParaServico(
+                profissional.getUsuario().getId(), dto.getCategoriaId(), dto.getCategoria());
 
         Servico servico = Servico.builder()
                 .nome(dto.getNome().trim())
                 .descricao(dto.getDescricao())
-                .categoria(dto.getCategoria())
+                .categoria(categoria.getNome())
+                .categoriaEntidade(categoria)
                 .duracaoMinutos(dto.getDuracaoMinutos())
                 .preco(dto.getPreco())
                 .ativo(dto.getAtivo() != null ? dto.getAtivo() : true)
@@ -86,41 +92,24 @@ public class ServicoService {
     public ServicoDTO atualizar(Long id, ServicoDTO dto) {
         Servico servico = servicoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Serviço não encontrado: " + id));
+        Categoria categoria = categoriaService.resolverParaServico(
+                servico.getProfissional().getUsuario().getId(), dto.getCategoriaId(), dto.getCategoria());
 
-        aplicarAtualizacao(servico, dto);
+        aplicarAtualizacao(servico, dto, categoria);
 
         return toDTO(servicoRepository.save(servico));
     }
 
-    @Transactional
-    public ServicoDTO atualizarComoAdmin(Long id, ServicoDTO dto) {
-        Servico servico = servicoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Serviço não encontrado: " + id));
-        if (dto.getProfissionalId() != null
-                && !dto.getProfissionalId().equals(servico.getProfissional().getId())
-                && agendamentoRepository.existsByServico_Id(id)) {
-            throw new IllegalStateException(
-                    "Não é possível trocar o profissional de um serviço com agendamentos vinculados.");
-        }
-        aplicarAtualizacao(servico, dto);
-        if (dto.getProfissionalId() != null && !dto.getProfissionalId().equals(servico.getProfissional().getId())) {
-            Profissional profissional = profissionalRepository.findById(dto.getProfissionalId())
-                    .orElseThrow(() -> new RecursoNaoEncontradoException("Profissional não encontrado: " + dto.getProfissionalId()));
-            servico.setProfissional(profissional);
-        }
-        return toDTO(servicoRepository.save(servico));
-    }
-
-    private void aplicarAtualizacao(Servico servico, ServicoDTO dto) {
+    private void aplicarAtualizacao(Servico servico, ServicoDTO dto, Categoria categoria) {
         servico.setNome(dto.getNome().trim());
         servico.setDescricao(dto.getDescricao());
-        servico.setCategoria(dto.getCategoria());
+        servico.setCategoria(categoria.getNome());
+        servico.setCategoriaEntidade(categoria);
         servico.setDuracaoMinutos(dto.getDuracaoMinutos());
         servico.setPreco(dto.getPreco());
         if (dto.getAtivo() != null) {
             servico.setAtivo(dto.getAtivo());
         }
-
     }
 
     @Transactional
@@ -142,11 +131,14 @@ public class ServicoService {
     }
 
     public ServicoDTO toDTO(Servico s) {
+        Categoria cat = s.getCategoriaEntidade();
         return ServicoDTO.builder()
                 .id(s.getId())
                 .nome(s.getNome())
                 .descricao(s.getDescricao())
-                .categoria(s.getCategoria())
+                .categoriaId(cat != null ? cat.getId() : null)
+                .categoria(cat != null ? cat.getNome() : s.getCategoria())
+                .categoriaStatus(cat != null ? cat.getStatus() : null)
                 .duracaoMinutos(s.getDuracaoMinutos())
                 .preco(s.getPreco())
                 .ativo(s.getAtivo())

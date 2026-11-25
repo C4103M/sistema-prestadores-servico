@@ -3,6 +3,9 @@ package com.agendamento.compartilhado.config;
 import com.agendamento.agendamento.model.Agendamento;
 import com.agendamento.agendamento.model.StatusAgendamento;
 import com.agendamento.agendamento.repository.AgendamentoRepository;
+import com.agendamento.categoria.model.Categoria;
+import com.agendamento.categoria.model.StatusCategoria;
+import com.agendamento.categoria.repository.CategoriaRepository;
 import com.agendamento.cliente.model.Cliente;
 import com.agendamento.cliente.repository.ClienteRepository;
 import com.agendamento.disponibilidade.model.DiaSemana;
@@ -32,6 +35,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -42,6 +46,7 @@ public class DataSeeder implements ApplicationRunner {
     private final UsuarioRepository usuarioRepository;
     private final ProfissionalRepository profissionalRepository;
     private final ClienteRepository clienteRepository;
+    private final CategoriaRepository categoriaRepository;
     private final ServicoRepository servicoRepository;
     private final DisponibilidadeRepository disponibilidadeRepository;
     private final AgendamentoRepository agendamentoRepository;
@@ -51,16 +56,25 @@ public class DataSeeder implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) {
         if (usuarioRepository.count() > 0) {
+            Map<String, Categoria> categorias = garantirCategoriasIniciais(null);
+            vincularServicosSemCategoria(categorias);
             return;
         }
 
         String senhaPadrao = passwordEncoder.encode("123456");
 
-        usuarioRepository.save(Usuario.builder()
+        Usuario admin = usuarioRepository.save(Usuario.builder()
                 .email("admin@agendefacil.com")
+                .nome("Administrador")
                 .senha(senhaPadrao)
                 .papel(PapelUsuario.ADMIN)
+                .ativo(true)
                 .build());
+
+        Map<String, Categoria> categorias = garantirCategoriasIniciais(admin);
+        Categoria catBarbearia = categorias.get("Barbearia");
+        Categoria catEstetica = categorias.get("Estética");
+        Categoria catEletrica = categorias.get("Elétrica");
 
         Profissional carlos = criarProfissional("Carlos Silva", "Barbearia", "carlos@barbearia.com", senhaPadrao);
         Profissional beatriz = criarProfissional("Beatriz Mendes", "Estética", "beatriz@estetica.com", senhaPadrao);
@@ -73,13 +87,13 @@ public class DataSeeder implements ApplicationRunner {
         Cliente joao = criarCliente("João Martins", "(11) 95678-9012", "joao@email.com", senhaPadrao);
         Cliente pedro = criarCliente("Pedro Alves", "(11) 96789-0123", "pedro@email.com", senhaPadrao);
 
-        Servico corte = criarServico(carlos, "Corte degradê", "Corte na máquina e tesoura, lavagem e finalização.", "Barbearia", 45, "50.00");
-        Servico barba = criarServico(carlos, "Barba com toalha quente", "Modelagem na navalha, toalha quente e óleo hidratante.", "Barbearia", 30, "40.00");
-        Servico corteBarba = criarServico(carlos, "Corte + barba", "Corte completo, barba e acabamento da sobrancelha.", "Barbearia", 75, "85.00");
-        Servico limpeza = criarServico(beatriz, "Limpeza de pele", "Extração, esfoliação e máscara calmante.", "Estética", 60, "140.00");
-        Servico massagem = criarServico(beatriz, "Massagem relaxante", "Massagem corporal com pedras quentes.", "Estética", 50, "120.00");
-        Servico quadro = criarServico(marcos, "Revisão do quadro elétrico", "Diagnóstico de sobrecarga, aperto de bornes e troca de disjuntores.", "Elétrica", 90, "180.00");
-        Servico chuveiro = criarServico(marcos, "Instalação de chuveiro", "Instalação com troca de resistência e teste de aterramento.", "Elétrica", 60, "120.00");
+        Servico corte = criarServico(carlos, "Corte degradê", "Corte na máquina e tesoura, lavagem e finalização.", catBarbearia, 45, "50.00");
+        Servico barba = criarServico(carlos, "Barba com toalha quente", "Modelagem na navalha, toalha quente e óleo hidratante.", catBarbearia, 30, "40.00");
+        Servico corteBarba = criarServico(carlos, "Corte + barba", "Corte completo, barba e acabamento da sobrancelha.", catBarbearia, 75, "85.00");
+        Servico limpeza = criarServico(beatriz, "Limpeza de pele", "Extração, esfoliação e máscara calmante.", catEstetica, 60, "140.00");
+        Servico massagem = criarServico(beatriz, "Massagem relaxante", "Massagem corporal com pedras quentes.", catEstetica, 50, "120.00");
+        Servico quadro = criarServico(marcos, "Revisão do quadro elétrico", "Diagnóstico de sobrecarga, aperto de bornes e troca de disjuntores.", catEletrica, 90, "180.00");
+        Servico chuveiro = criarServico(marcos, "Instalação de chuveiro", "Instalação com troca de resistência e teste de aterramento.", catEletrica, 60, "120.00");
 
         List<DiaSemana> uteis = List.of(DiaSemana.SEGUNDA, DiaSemana.TERCA, DiaSemana.QUARTA, DiaSemana.QUINTA, DiaSemana.SEXTA);
         List<Disponibilidade> disponibilidades = new ArrayList<>();
@@ -119,7 +133,61 @@ public class DataSeeder implements ApplicationRunner {
         );
         agendamentoRepository.saveAll(agendamentos);
 
-        log.info("Seed inicial concluído: 3 profissionais, 6 clientes, 7 serviços e {} agendamentos.", agendamentos.size());
+        log.info("Seed inicial concluído: {} categorias, 3 profissionais, 6 clientes, 7 serviços e {} agendamentos.",
+                categorias.size(), agendamentos.size());
+    }
+
+    private Map<String, Categoria> garantirCategoriasIniciais(Usuario admin) {
+        Usuario criador = admin != null
+                ? admin
+                : usuarioRepository.findByEmail("admin@agendefacil.com").orElse(null);
+
+        Categoria barbearia = criarSeFaltar("Barbearia",
+                "Cortes masculinos, barba na navalha e acabamento profissional.",
+                "/imagens/categorias/barbearia.webp", criador);
+        Categoria estetica = criarSeFaltar("Estética",
+                "Limpeza de pele, massagens e cuidados faciais e corporais.",
+                "/imagens/categorias/estetica.jpg", criador);
+        Categoria eletrica = criarSeFaltar("Elétrica",
+                "Instalações, revisões de quadro e reparos elétricos residenciais.",
+                "/imagens/categorias/eletrica.jpg", criador);
+        Categoria outros = criarSeFaltar("Outros",
+                "Serviços gerais, manutenção e atendimentos especializados.",
+                "/imagens/categorias/outros.jpg", criador);
+
+        return Map.of(
+                "Barbearia", barbearia,
+                "Estética", estetica,
+                "Elétrica", eletrica,
+                "Outros", outros
+        );
+    }
+
+    private Categoria criarSeFaltar(String nome, String shortDescription, String imagemUrl, Usuario criador) {
+        return categoriaRepository.findByNomeIgnoreCase(nome)
+                .orElseGet(() -> categoriaRepository.save(Categoria.builder()
+                        .nome(nome)
+                        .shortDescription(shortDescription)
+                        .imagemUrl(imagemUrl)
+                        .status(StatusCategoria.APROVADA)
+                        .criadoPor(criador)
+                        .build()));
+    }
+
+    private void vincularServicosSemCategoria(Map<String, Categoria> iniciais) {
+        List<Servico> semCategoria = servicoRepository.findByCategoriaEntidadeIsNull();
+        if (semCategoria.isEmpty()) {
+            return;
+        }
+        Categoria fallback = iniciais.get("Outros");
+        for (Servico s : semCategoria) {
+            Categoria alvo = s.getCategoria() != null
+                    ? categoriaRepository.findByNomeIgnoreCase(s.getCategoria().trim()).orElse(fallback)
+                    : fallback;
+            s.setCategoriaEntidade(alvo);
+            s.setCategoria(alvo.getNome());
+        }
+        servicoRepository.saveAll(semCategoria);
     }
 
     private Profissional criarProfissional(String nome, String especialidade, String email, String senhaHash) {
@@ -127,6 +195,7 @@ public class DataSeeder implements ApplicationRunner {
                 .email(email)
                 .senha(senhaHash)
                 .papel(PapelUsuario.PROFISSIONAL)
+                .ativo(true)
                 .build());
         return profissionalRepository.save(Profissional.builder()
                 .nome(nome)
@@ -140,6 +209,7 @@ public class DataSeeder implements ApplicationRunner {
                 .email(email)
                 .senha(senhaHash)
                 .papel(PapelUsuario.CLIENTE)
+                .ativo(true)
                 .build());
         return clienteRepository.save(Cliente.builder()
                 .nome(nome)
@@ -148,12 +218,13 @@ public class DataSeeder implements ApplicationRunner {
                 .build());
     }
 
-    private Servico criarServico(Profissional prof, String nome, String descricao, String categoria, int duracao, String preco) {
+    private Servico criarServico(Profissional prof, String nome, String descricao, Categoria categoria, int duracao, String preco) {
         return servicoRepository.save(Servico.builder()
                 .profissional(prof)
                 .nome(nome)
                 .descricao(descricao)
-                .categoria(categoria)
+                .categoria(categoria.getNome())
+                .categoriaEntidade(categoria)
                 .duracaoMinutos(duracao)
                 .preco(new BigDecimal(preco))
                 .ativo(true)

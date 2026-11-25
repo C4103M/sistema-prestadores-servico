@@ -7,6 +7,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -57,6 +58,11 @@ public class GlobalExceptionHandler {
     public ProblemDetail jsonInvalido(HttpMessageNotReadableException ex) {
         return problema(HttpStatus.BAD_REQUEST, "Requisição inválida",
                 "O corpo da requisição não pôde ser lido. Verifique o JSON e os valores informados.");
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ProblemDetail arquivoMuitoGrande(MaxUploadSizeExceededException ex) {
+        return problema(HttpStatus.BAD_REQUEST, "Arquivo muito grande", "A imagem deve ter no máximo 5 MB.");
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

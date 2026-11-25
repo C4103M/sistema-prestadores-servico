@@ -4,6 +4,7 @@ import com.agendamento.agendamento.dto.response.HorarioLivreResponse;
 import com.agendamento.agendamento.model.Agendamento;
 import com.agendamento.agendamento.model.StatusAgendamento;
 import com.agendamento.agendamento.repository.AgendamentoRepository;
+import com.agendamento.categoria.model.StatusCategoria;
 import com.agendamento.compartilhado.exceptions.RecursoNaoEncontradoException;
 import com.agendamento.disponibilidade.model.DiaSemana;
 import com.agendamento.disponibilidade.model.Disponibilidade;
@@ -52,7 +53,10 @@ public class HorarioService {
 
         Servico servico = servicoRepository.findById(servicoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Serviço não encontrado: " + servicoId));
-        if (!Boolean.TRUE.equals(servico.getAtivo())) {
+        if (!Boolean.TRUE.equals(servico.getAtivo())
+                || !Boolean.TRUE.equals(servico.getProfissional().getUsuario().getAtivo())
+                || servico.getCategoriaEntidade() == null
+                || servico.getCategoriaEntidade().getStatus() != StatusCategoria.APROVADA) {
             throw new IllegalArgumentException("O serviço escolhido não está ativo.");
         }
 

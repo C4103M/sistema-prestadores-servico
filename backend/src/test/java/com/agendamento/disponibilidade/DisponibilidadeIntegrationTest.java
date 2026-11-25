@@ -3,6 +3,9 @@ package com.agendamento.disponibilidade;
 import com.agendamento.agendamento.model.Agendamento;
 import com.agendamento.agendamento.model.StatusAgendamento;
 import com.agendamento.agendamento.repository.AgendamentoRepository;
+import com.agendamento.categoria.model.Categoria;
+import com.agendamento.categoria.model.StatusCategoria;
+import com.agendamento.categoria.repository.CategoriaRepository;
 import com.agendamento.cliente.model.Cliente;
 import com.agendamento.cliente.repository.ClienteRepository;
 import com.agendamento.disponibilidade.model.Disponibilidade;
@@ -51,6 +54,7 @@ class DisponibilidadeIntegrationTest {
     @Autowired private ClienteRepository clienteRepository;
     @Autowired private DisponibilidadeRepository disponibilidadeRepository;
     @Autowired private ServicoRepository servicoRepository;
+    @Autowired private CategoriaRepository categoriaRepository;
     @Autowired private AgendamentoRepository agendamentoRepository;
 
     @Test
@@ -130,8 +134,9 @@ class DisponibilidadeIntegrationTest {
         LocalDate proximaSexta = LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.FRIDAY));
         Profissional profissional = profissionalRepository.findById(pro.perfilId).orElseThrow();
         Cliente entidadeCliente = clienteRepository.findById(cliente.perfilId).orElseThrow();
+        Categoria cat = categoriaAprovada();
         Servico servico = servicoRepository.saveAndFlush(Servico.builder().nome("Serviço")
-                .categoria("Geral").duracaoMinutos(30).preco(new BigDecimal("40.00"))
+                .categoria(cat.getNome()).categoriaEntidade(cat).duracaoMinutos(30).preco(new BigDecimal("40.00"))
                 .ativo(true).profissional(profissional).build());
         LocalDateTime inicio = proximaSexta.atTime(14, 0);
         Agendamento agendamento = agendamentoRepository.saveAndFlush(Agendamento.builder()
@@ -152,8 +157,9 @@ class DisponibilidadeIntegrationTest {
         Sessao pro = cadastrarProfissional();
         Sessao cliente = cadastrarCliente();
         Profissional profissional = profissionalRepository.findById(pro.perfilId).orElseThrow();
+        Categoria cat = categoriaAprovada();
         Servico servico = servicoRepository.saveAndFlush(Servico.builder().nome("Serviço")
-                .categoria("Geral").duracaoMinutos(30).preco(new BigDecimal("40.00"))
+                .categoria(cat.getNome()).categoriaEntidade(cat).duracaoMinutos(30).preco(new BigDecimal("40.00"))
                 .ativo(true).profissional(profissional).build());
         LocalDate proximaSegunda = LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.MONDAY));
         String corpo = """
@@ -210,6 +216,16 @@ class DisponibilidadeIntegrationTest {
     private Sessao sessao(MvcResult result) throws Exception {
         String json = result.getResponse().getContentAsString();
         return new Sessao(JsonPath.read(json, "$.token"), ((Number) JsonPath.read(json, "$.perfilId")).longValue());
+    }
+
+    private Categoria categoriaAprovada() {
+        return categoriaRepository.findByNomeIgnoreCase("Geral")
+                .orElseGet(() -> categoriaRepository.saveAndFlush(Categoria.builder()
+                        .nome("Geral")
+                        .shortDescription("Serviços gerais")
+                        .imagemUrl("/imagens/categorias/outros.jpg")
+                        .status(StatusCategoria.APROVADA)
+                        .build()));
     }
 
     private String email() { return "teste-" + UUID.randomUUID() + "@teste.com"; }

@@ -3,6 +3,9 @@ package com.agendamento.agendamento;
 import com.agendamento.agendamento.model.Agendamento;
 import com.agendamento.agendamento.model.StatusAgendamento;
 import com.agendamento.agendamento.repository.AgendamentoRepository;
+import com.agendamento.categoria.model.Categoria;
+import com.agendamento.categoria.model.StatusCategoria;
+import com.agendamento.categoria.repository.CategoriaRepository;
 import com.agendamento.cliente.model.Cliente;
 import com.agendamento.cliente.repository.ClienteRepository;
 import com.agendamento.disponibilidade.model.DiaSemana;
@@ -52,6 +55,7 @@ class AgendamentoMarcacaoIntegrationTest {
     @Autowired private ProfissionalRepository profissionalRepository;
     @Autowired private ClienteRepository clienteRepository;
     @Autowired private ServicoRepository servicoRepository;
+    @Autowired private CategoriaRepository categoriaRepository;
     @Autowired private DisponibilidadeRepository disponibilidadeRepository;
     @Autowired private AgendamentoRepository agendamentoRepository;
 
@@ -287,8 +291,15 @@ class AgendamentoMarcacaoIntegrationTest {
 
     private Servico salvarServico(Long proId, String nome, String categoria, int duracao, String preco, boolean ativo) {
         Profissional pro = profissionalRepository.findById(proId).orElseThrow();
+        Categoria cat = categoriaRepository.findByNomeIgnoreCase(categoria)
+                .orElseGet(() -> categoriaRepository.saveAndFlush(Categoria.builder()
+                        .nome(categoria)
+                        .shortDescription("Descrição de " + categoria)
+                        .imagemUrl("/imagens/categorias/outros.jpg")
+                        .status(StatusCategoria.APROVADA)
+                        .build()));
         return servicoRepository.saveAndFlush(Servico.builder()
-                .nome(nome).categoria(categoria).descricao("Descrição")
+                .nome(nome).categoria(cat.getNome()).categoriaEntidade(cat).descricao("Descrição")
                 .duracaoMinutos(duracao).preco(new BigDecimal(preco))
                 .ativo(ativo).profissional(pro).build());
     }

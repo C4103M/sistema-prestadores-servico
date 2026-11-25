@@ -3,9 +3,12 @@ package com.agendamento.profissional.controller;
 import com.agendamento.agendamento.dto.response.AgendamentoResponse;
 import com.agendamento.agendamento.dto.response.DashboardResponse;
 import com.agendamento.agendamento.service.AgendamentoService;
+import com.agendamento.categoria.dto.CategoriaRequest;
+import com.agendamento.categoria.dto.CategoriaResponse;
+import com.agendamento.categoria.service.CategoriaService;
 import com.agendamento.disponibilidade.dto.DisponibilidadeDTO;
 import com.agendamento.disponibilidade.service.DisponibilidadeService;
-import com.agendamento.profissional.model.Profissional;
+import com.agendamento.seguranca.UsuarioAutenticado;
 import com.agendamento.servico.dto.ServicoDTO;
 import com.agendamento.servico.service.ServicoService;
 
@@ -23,6 +26,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -42,6 +46,34 @@ public class ProfissionalController {
     private final ServicoService servicoService;
     private final DisponibilidadeService disponibilidadeService;
     private final AgendamentoService agendamentoService;
+    private final CategoriaService categoriaService;
+
+    // ---- Categorias / Especialidades
+    @Operation(summary = "Listar categorias disponíveis e solicitações do profissional")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Categorias aprovadas e sugestões do próprio profissional")
+    })
+    @GetMapping("/categorias")
+    public List<CategoriaResponse> categorias(
+            @PathVariable Long profissionalId,
+            @AuthenticationPrincipal UsuarioAutenticado atual) {
+        return categoriaService.listarParaProfissional(atual.getUsuarioId());
+    }
+
+    @Operation(summary = "Sugerir nova categoria (fica pendente de aprovação)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Categoria criada como PENDENTE para aprovação do administrador"),
+            @ApiResponse(responseCode = "400", description = "Campos inválidos", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "409", description = "Já existe categoria com este nome", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @PostMapping("/categorias")
+    public ResponseEntity<CategoriaResponse> sugerirCategoria(
+            @PathVariable Long profissionalId,
+            @AuthenticationPrincipal UsuarioAutenticado atual,
+            @Valid @RequestBody CategoriaRequest dto) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(categoriaService.sugerirPeloProfissional(atual.getUsuarioId(), dto));
+    }
 
     // ---- Manter serviço
     @Operation(summary = "Listar serviços do profissional")

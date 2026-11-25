@@ -1,5 +1,6 @@
 package com.agendamento.servico.dto;
 
+import com.agendamento.categoria.model.StatusCategoria;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -19,7 +20,9 @@ public class ServicoDTO {
 
     private String descricao;
 
+    private Long categoriaId;
     private String categoria;
+    private StatusCategoria categoriaStatus;
 
     @NotNull(message = "A duração em minutos é obrigatória.")
     @Min(value = 5, message = "A duração mínima é 5 minutos.")

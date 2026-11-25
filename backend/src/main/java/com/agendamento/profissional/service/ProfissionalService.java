@@ -4,6 +4,7 @@ import com.agendamento.compartilhado.exceptions.RecursoNaoEncontradoException;
 import com.agendamento.profissional.dto.response.ProfissionalResponse;
 import com.agendamento.profissional.model.Profissional;
 import com.agendamento.profissional.repository.ProfissionalRepository;
+import com.agendamento.servico.dto.ServicoDTO;
 import com.agendamento.servico.repository.ServicoRepository;
 import com.agendamento.servico.service.ServicoService;
 
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,11 +23,11 @@ public class ProfissionalService {
     private final ServicoRepository servicoRepository;
     private final ServicoService servicoService;
 
-    // Busca do cliente por profissional (nome ou especialidade); só lista quem tem serviço ativo
+    // Busca do cliente por profissional (nome, especialidade ou categoria); só lista quem tem usuário ativo e serviço público
     @Transactional(readOnly = true)
     public List<ProfissionalResponse> pesquisar(String termo) {
         List<Profissional> encontrados = (termo == null || termo.isBlank())
-                ? profissionalRepository.findAll()
+                ? profissionalRepository.findByUsuarioAtivoTrue()
                 : profissionalRepository.buscar(termo.trim());
         return encontrados.stream()
                 .map(this::toDTO)
@@ -45,13 +47,22 @@ public class ProfissionalService {
     }
 
     private ProfissionalResponse toDTO(Profissional p) {
+        List<ServicoDTO> servicosPublicos = servicoRepository.findPublicosAtivosByProfissionalId(p.getId()).stream()
+                .map(servicoService::toDTO)
+                .toList();
+        String especialidadeExibida = p.getEspecialidade();
+        if (especialidadeExibida == null || especialidadeExibida.isBlank()) {
+            especialidadeExibida = servicosPublicos.stream()
+                    .map(ServicoDTO::getCategoria)
+                    .filter(c -> c != null && !c.isBlank())
+                    .distinct()
+                    .collect(Collectors.joining(", "));
+        }
         return ProfissionalResponse.builder()
                 .id(p.getId())
                 .nome(p.getNome())
-                .especialidade(p.getEspecialidade())
-                .servicos(servicoRepository.findByProfissionalIdAndAtivoTrue(p.getId()).stream()
-                        .map(servicoService::toDTO)
-                        .toList())
+                .especialidade(especialidadeExibida)
+                .servicos(servicosPublicos)
                 .build();
     }
 }

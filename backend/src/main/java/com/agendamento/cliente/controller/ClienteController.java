@@ -6,6 +6,8 @@ import com.agendamento.agendamento.dto.response.HorarioLivreResponse;
 import com.agendamento.agendamento.dto.response.HorarioOcupadoResponse;
 import com.agendamento.agendamento.service.AgendamentoService;
 import com.agendamento.agendamento.service.HorarioService;
+import com.agendamento.categoria.dto.CategoriaResponse;
+import com.agendamento.categoria.service.CategoriaService;
 import com.agendamento.disponibilidade.dto.DisponibilidadeDTO;
 import com.agendamento.disponibilidade.service.DisponibilidadeService;
 import com.agendamento.profissional.dto.response.ProfissionalResponse;
@@ -46,6 +48,18 @@ public class ClienteController {
     private final DisponibilidadeService disponibilidadeService;
     private final AgendamentoService agendamentoService;
     private final HorarioService horarioService;
+    private final CategoriaService categoriaService;
+
+    @Operation(summary = "Listar categorias públicas com serviços ativos", description = "Retorna apenas categorias aprovadas que possuem ao menos um serviço ativo disponível.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de categorias públicas"),
+            @ApiResponse(responseCode = "401", description = "Não autenticado"),
+            @ApiResponse(responseCode = "403", description = "Acesso restrito a Cliente")
+    })
+    @GetMapping("/categorias")
+    public List<CategoriaResponse> categorias() {
+        return categoriaService.listarPublicasComServicosAtivos();
+    }
 
     /** Busca por serviço: o termo casa com o nome, a descrição ou o profissional do serviço. */
     @Operation(summary = "Buscar serviços ativos", description = "Lista serviços ativos filtrados opcionalmente por nome, descrição, categoria ou profissional.")
