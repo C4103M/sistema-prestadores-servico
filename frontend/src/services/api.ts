@@ -139,6 +139,7 @@ export const api = {
       request<AuthResponse>(() => http.post<AuthResponse>('/auth/cadastro/cliente', payload)),
     cadastrarProfissional: (payload: CadastroProfissionalPayload) =>
       request<AuthResponse>(() => http.post<AuthResponse>('/auth/cadastro/profissional', payload)),
+    renovar: () => request<AuthResponse>(() => http.post<AuthResponse>('/auth/renovar')),
   },
 
   cliente: {

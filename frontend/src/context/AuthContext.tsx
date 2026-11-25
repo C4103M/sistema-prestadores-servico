@@ -43,13 +43,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!sessao) return;
-    const atraso = Math.max(0, Math.min(sessao.expiraEm - Date.now(), 2_147_000_000));
-    const temporizador = window.setTimeout(() => {
+    const restante = sessao.expiraEm - Date.now();
+    const atrasoExpiracao = Math.max(0, Math.min(restante, 2_147_000_000));
+    const timerExpiracao = window.setTimeout(() => {
       limparSessao();
       setSessao(null);
       window.location.hash = '/login';
-    }, atraso);
-    return () => window.clearTimeout(temporizador);
+    }, atrasoExpiracao);
+
+    let cancelado = false;
+    let timerRenovacao: number | undefined;
+    if (restante > 15_000) {
+      const margem = Math.min(5 * 60_000, Math.floor(sessao.expiraEmMinutos * 60_000 * 0.2));
+      const atrasoRenovacao = Math.min(Math.max(1_000, restante - margem), 2_147_000_000);
+      timerRenovacao = window.setTimeout(() => {
+        void api.auth
+          .renovar()
+          .then((nova) => {
+            if (!cancelado) setSessao(salvarSessao(nova));
+          })
+          .catch(() => {
+            // Falha na renovação: o timer de expiração ou o interceptor 401 encerrará a sessão normalmente.
+          });
+      }, atrasoRenovacao);
+    }
+
+    return () => {
+      cancelado = true;
+      window.clearTimeout(timerExpiracao);
+      if (timerRenovacao !== undefined) window.clearTimeout(timerRenovacao);
+    };
   }, [sessao]);
 
   const entrar = useCallback(async (email: string, senha: string) => {

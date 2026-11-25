@@ -3,16 +3,27 @@ import { CalendarCheck2 } from 'lucide-react';
 import { ApiError } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
+type ErrosLogin = Partial<Record<'email' | 'senha', string>>;
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function LoginPage() {
   const { entrar } = useAuth();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [campos, setCampos] = useState<ErrosLogin>({});
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
 
   const enviar = async (e: FormEvent) => {
     e.preventDefault();
     setErro('');
+    const errosLocais: ErrosLogin = {};
+    if (!email.trim() || !EMAIL_REGEX.test(email.trim())) errosLocais.email = 'Informe um e-mail válido.';
+    if (!senha) errosLocais.senha = 'Informe a senha.';
+    setCampos(errosLocais);
+    if (Object.keys(errosLocais).length > 0) return;
+
     setEnviando(true);
     try {
       await entrar(email.trim(), senha);
@@ -34,14 +45,34 @@ export function LoginPage() {
       <section className="painel mt-8 p-6 sm:p-8">
         <h1 className="text-2xl font-bold">Entrar</h1>
         <p className="mt-1 text-sm text-muted">Acesse sua área de cliente ou profissional.</p>
-        <form className="mt-6 space-y-4" onSubmit={(e) => void enviar(e)}>
+        <form className="mt-6 space-y-4" noValidate onSubmit={(e) => void enviar(e)}>
           <div>
             <label className="label" htmlFor="email">E-mail</label>
-            <input id="email" className="input" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input
+              id="email"
+              className="input"
+              type="email"
+              autoComplete="email"
+              value={email}
+              aria-invalid={campos.email ? true : undefined}
+              aria-describedby={campos.email ? 'erro-login-email' : undefined}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            {campos.email && <p id="erro-login-email" className="erro-campo">{campos.email}</p>}
           </div>
           <div>
             <label className="label" htmlFor="senha">Senha</label>
-            <input id="senha" className="input" type="password" autoComplete="current-password" required value={senha} onChange={(e) => setSenha(e.target.value)} />
+            <input
+              id="senha"
+              className="input"
+              type="password"
+              autoComplete="current-password"
+              value={senha}
+              aria-invalid={campos.senha ? true : undefined}
+              aria-describedby={campos.senha ? 'erro-login-senha' : undefined}
+              onChange={(e) => setSenha(e.target.value)}
+            />
+            {campos.senha && <p id="erro-login-senha" className="erro-campo">{campos.senha}</p>}
           </div>
           {erro && <p className="erro-campo" role="alert">{erro}</p>}
           <button className="btn btn-primary w-full" type="submit" disabled={enviando}>
