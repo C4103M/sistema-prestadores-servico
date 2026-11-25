@@ -12,10 +12,12 @@ import com.agendamento.servico.service.ServicoService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -76,7 +78,10 @@ public class AdminController {
     }
 
     @GetMapping("/dashboard")
-    public AdminDashboardResponse dashboard() {
-        return agendamentoService.obterDashboardGeral(profissionalRepository.count(), servicoRepository.findByAtivoTrue().size());
+    public AdminDashboardResponse dashboard(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate de,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ate) {
+        return agendamentoService.obterDashboardGeral(
+                profissionalRepository.count(), servicoRepository.findByAtivoTrue().size(), de, ate);
     }
 }

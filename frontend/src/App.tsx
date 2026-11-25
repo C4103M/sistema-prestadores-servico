@@ -357,7 +357,6 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
               key={tela}
               area={area as 'profissional' | 'admin'}
               profissionalId={area === 'profissional' ? perfilId : undefined}
-              agendamentos={agendamentos}
             />
           )}
         </>

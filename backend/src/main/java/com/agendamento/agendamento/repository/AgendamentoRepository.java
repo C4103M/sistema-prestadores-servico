@@ -20,6 +20,13 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
 
     boolean existsByServico_Id(Long servicoId);
 
+    @Query("SELECT a FROM Agendamento a WHERE a.dataHoraInicio >= :inicio AND a.dataHoraInicio <= :fim " +
+           "ORDER BY a.dataHoraInicio ASC")
+    List<Agendamento> findByPeriodo(
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fim") LocalDateTime fim
+    );
+
     @Query("SELECT a FROM Agendamento a WHERE a.profissional.id = :profissionalId " +
            "AND a.dataHoraInicio >= :inicio AND a.dataHoraInicio <= :fim " +
            "ORDER BY a.dataHoraInicio ASC")

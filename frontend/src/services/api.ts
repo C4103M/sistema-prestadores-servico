@@ -1,6 +1,8 @@
 import axios, { AxiosError } from 'axios';
 import type {
+  AdminDashboardResponse,
   Agendamento,
+  DashboardResponse,
   DiaSemana,
   Disponibilidade,
   HealthStatus,
@@ -221,8 +223,12 @@ export const api = {
       request<Agendamento>(() => http.patch<Agendamento>(`/profissional/${profissionalId}/agendamentos/${id}/falta`)),
     cancelarAgendamento: (profissionalId: number, id: number) =>
       request<Agendamento>(() => http.patch<Agendamento>(`/profissional/${profissionalId}/agendamentos/${id}/cancelar`)),
-    obterDashboard: (profissionalId: number) =>
-      request<unknown>(() => http.get(`/profissional/${profissionalId}/dashboard`)),
+    obterDashboard: (profissionalId: number, de?: string, ate?: string) =>
+      request<DashboardResponse>(() =>
+        http.get<DashboardResponse>(`/profissional/${profissionalId}/dashboard`, {
+          params: { ...(de ? { de } : {}), ...(ate ? { ate } : {}) },
+        })
+      ),
   },
 
   admin: {
@@ -237,6 +243,11 @@ export const api = {
     excluirServico: (id: number) =>
       request<void>(() => http.delete<void>(`/admin/servicos/${id}`)),
     listarAgendamentos: () => request<Agendamento[]>(() => http.get<Agendamento[]>('/admin/agendamentos')),
-    obterDashboard: () => request<unknown>(() => http.get('/admin/dashboard')),
+    obterDashboard: (de?: string, ate?: string) =>
+      request<AdminDashboardResponse>(() =>
+        http.get<AdminDashboardResponse>('/admin/dashboard', {
+          params: { ...(de ? { de } : {}), ...(ate ? { ate } : {}) },
+        })
+      ),
   },
 };

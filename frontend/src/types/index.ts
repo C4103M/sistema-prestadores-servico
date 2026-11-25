@@ -78,6 +78,50 @@ export interface HealthStatus {
   };
 }
 
+export interface FaturamentoServico {
+  servicoId: number;
+  servicoNome: string;
+  concluidos: number;
+  faturamento: number;
+}
+
+export interface AtendimentoRecente {
+  id: number;
+  clienteNome: string;
+  servicoNome: string;
+  profissionalNome: string;
+  dataHoraInicio: string;
+  preco: number;
+}
+
+export interface DashboardResponse {
+  totalAtendimentos: number;
+  concluidos: number;
+  cancelados: number;
+  faltas: number;
+  agendados: number;
+  agendadosFuturos: number;
+  taxaComparecimento: number | null;
+  faturamentoTotal: number;
+  porServico: FaturamentoServico[];
+  recentes: AtendimentoRecente[];
+}
+
+export interface FaturamentoProfissional {
+  profissionalId: number;
+  profissionalNome: string;
+  concluidos: number;
+  faltas: number;
+  faturamento: number;
+}
+
+export interface AdminDashboardResponse {
+  totais: DashboardResponse;
+  profissionais: number;
+  servicosAtivos: number;
+  porProfissional: FaturamentoProfissional[];
+}
+
 export type Tela =
   | 'cliente/buscar'
   | 'cliente/agendamentos'

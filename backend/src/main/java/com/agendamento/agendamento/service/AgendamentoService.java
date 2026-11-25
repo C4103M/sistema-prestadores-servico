@@ -170,7 +170,16 @@ public class AgendamentoService {
 
     @Transactional(readOnly = true)
     public DashboardResponse obterDashboard(Long profissionalId) {
-        return resumo(agendamentoRepository.findByProfissionalIdOrderByDataHoraInicioAsc(profissionalId));
+        return obterDashboard(profissionalId, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public DashboardResponse obterDashboard(Long profissionalId, LocalDate de, LocalDate ate) {
+        validarPeriodo(de, ate);
+        List<Agendamento> lista = (de == null && ate == null)
+                ? agendamentoRepository.findByProfissionalIdOrderByDataHoraInicioAsc(profissionalId)
+                : agendamentoRepository.findByProfissionalAndPeriodo(profissionalId, inicioDoPeriodo(de), fimDoPeriodo(ate));
+        return resumo(lista, true);
     }
 
     @Transactional(readOnly = true)
@@ -184,37 +193,116 @@ public class AgendamentoService {
     // Dashboard do Admin: todos os profissionais
     @Transactional(readOnly = true)
     public AdminDashboardResponse obterDashboardGeral(long profissionais, long servicosAtivos) {
-        List<Agendamento> todos = agendamentoRepository.findAll();
-        Map<Profissional, List<Agendamento>> porProfissional = todos.stream()
-                .collect(Collectors.groupingBy(Agendamento::getProfissional));
+        return obterDashboardGeral(profissionais, servicosAtivos, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminDashboardResponse obterDashboardGeral(long profissionais, long servicosAtivos, LocalDate de, LocalDate ate) {
+        validarPeriodo(de, ate);
+        List<Agendamento> todos = (de == null && ate == null)
+                ? agendamentoRepository.findAll()
+                : agendamentoRepository.findByPeriodo(inicioDoPeriodo(de), fimDoPeriodo(ate));
+
+        Map<Long, List<Agendamento>> porProfissional = todos.stream()
+                .collect(Collectors.groupingBy(a -> a.getProfissional().getId()));
 
         List<AdminDashboardResponse.FaturamentoProfissional> linhas = porProfissional.entrySet().stream()
-                .map(e -> AdminDashboardResponse.FaturamentoProfissional.builder()
-                        .profissionalId(e.getKey().getId())
-                        .profissionalNome(e.getKey().getNome())
-                        .concluidos(contar(e.getValue(), StatusAgendamento.CONCLUIDO))
-                        .faltas(contar(e.getValue(), StatusAgendamento.FALTOU))
-                        .faturamento(faturamento(e.getValue()))
-                        .build())
-                .sorted(Comparator.comparing(AdminDashboardResponse.FaturamentoProfissional::getFaturamento).reversed())
+                .map(e -> {
+                    List<Agendamento> grupo = e.getValue();
+                    return AdminDashboardResponse.FaturamentoProfissional.builder()
+                            .profissionalId(e.getKey())
+                            .profissionalNome(grupo.get(0).getProfissional().getNome())
+                            .concluidos(contar(grupo, StatusAgendamento.CONCLUIDO))
+                            .faltas(contar(grupo, StatusAgendamento.FALTOU))
+                            .faturamento(faturamento(grupo))
+                            .build();
+                })
+                .sorted(Comparator.comparing(AdminDashboardResponse.FaturamentoProfissional::getFaturamento).reversed()
+                        .thenComparing(AdminDashboardResponse.FaturamentoProfissional::getProfissionalNome))
                 .toList();
 
         return AdminDashboardResponse.builder()
-                .totais(resumo(todos))
+                .totais(resumo(todos, false))
                 .profissionais(profissionais)
                 .servicosAtivos(servicosAtivos)
                 .porProfissional(linhas)
                 .build();
     }
 
-    private DashboardResponse resumo(List<Agendamento> agendamentos) {
+    private void validarPeriodo(LocalDate de, LocalDate ate) {
+        if (de != null && ate != null && ate.isBefore(de)) {
+            throw new IllegalArgumentException("A data final deve ser igual ou posterior à data inicial.");
+        }
+    }
+
+    private LocalDateTime inicioDoPeriodo(LocalDate de) {
+        return de != null ? de.atStartOfDay() : LocalDateTime.of(1970, 1, 1, 0, 0);
+    }
+
+    private LocalDateTime fimDoPeriodo(LocalDate ate) {
+        return ate != null ? ate.atTime(LocalTime.MAX) : LocalDateTime.of(9999, 12, 31, 23, 59, 59);
+    }
+
+    private DashboardResponse resumo(List<Agendamento> agendamentos, boolean incluirPorServico) {
+        LocalDateTime agora = LocalDateTime.now();
+        long concluidos = contar(agendamentos, StatusAgendamento.CONCLUIDO);
+        long cancelados = contar(agendamentos, StatusAgendamento.CANCELADO);
+        long faltas = contar(agendamentos, StatusAgendamento.FALTOU);
+        long agendados = contar(agendamentos, StatusAgendamento.AGENDADO);
+        long agendadosFuturos = agendamentos.stream()
+                .filter(a -> a.getStatus() == StatusAgendamento.AGENDADO && a.getDataHoraInicio().isAfter(agora))
+                .count();
+        long avaliados = concluidos + faltas;
+        Double taxaComparecimento = avaliados == 0
+                ? null
+                : Math.round((concluidos * 1000.0) / avaliados) / 10.0;
+
+        List<Agendamento> concluidosLista = agendamentos.stream()
+                .filter(a -> a.getStatus() == StatusAgendamento.CONCLUIDO)
+                .toList();
+
+        List<DashboardResponse.FaturamentoServico> porServico = !incluirPorServico
+                ? List.of()
+                : concluidosLista.stream()
+                        .collect(Collectors.groupingBy(a -> a.getServico().getId()))
+                        .entrySet().stream()
+                        .map(e -> {
+                            List<Agendamento> grupo = e.getValue();
+                            return DashboardResponse.FaturamentoServico.builder()
+                                    .servicoId(e.getKey())
+                                    .servicoNome(grupo.get(0).getServico().getNome())
+                                    .concluidos((long) grupo.size())
+                                    .faturamento(faturamento(grupo))
+                                    .build();
+                        })
+                        .sorted(Comparator.comparing(DashboardResponse.FaturamentoServico::getFaturamento).reversed()
+                                .thenComparing(DashboardResponse.FaturamentoServico::getServicoNome))
+                        .toList();
+
+        List<DashboardResponse.AtendimentoRecente> recentes = concluidosLista.stream()
+                .sorted(Comparator.comparing(Agendamento::getDataHoraInicio).reversed())
+                .limit(8)
+                .map(a -> DashboardResponse.AtendimentoRecente.builder()
+                        .id(a.getId())
+                        .clienteNome(a.getCliente().getNome())
+                        .servicoNome(a.getServico().getNome())
+                        .profissionalNome(a.getProfissional().getNome())
+                        .dataHoraInicio(a.getDataHoraInicio())
+                        .preco(a.getPreco())
+                        .build())
+                .toList();
+
         return DashboardResponse.builder()
                 .totalAtendimentos((long) agendamentos.size())
-                .concluidos(contar(agendamentos, StatusAgendamento.CONCLUIDO))
-                .cancelados(contar(agendamentos, StatusAgendamento.CANCELADO))
-                .faltas(contar(agendamentos, StatusAgendamento.FALTOU))
-                .agendados(contar(agendamentos, StatusAgendamento.AGENDADO))
+                .concluidos(concluidos)
+                .cancelados(cancelados)
+                .faltas(faltas)
+                .agendados(agendados)
+                .agendadosFuturos(agendadosFuturos)
+                .taxaComparecimento(taxaComparecimento)
                 .faturamentoTotal(faturamento(agendamentos))
+                .porServico(porServico)
+                .recentes(recentes)
                 .build();
     }
 

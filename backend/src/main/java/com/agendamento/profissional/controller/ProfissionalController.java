@@ -120,7 +120,10 @@ public class ProfissionalController {
 
     // ---- Ver dashboard
     @GetMapping("/dashboard")
-    public DashboardResponse dashboard(@PathVariable Long profissionalId) {
-        return agendamentoService.obterDashboard(profissionalId);
+    public DashboardResponse dashboard(
+            @PathVariable Long profissionalId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate de,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ate) {
+        return agendamentoService.obterDashboard(profissionalId, de, ate);
     }
 }
