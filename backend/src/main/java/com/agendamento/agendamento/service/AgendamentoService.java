@@ -164,7 +164,7 @@ public class AgendamentoService {
     public AgendamentoResponse marcarFalta(Long profissionalId, Long id) {
         Agendamento agendamento = doProfissional(profissionalId, id);
 
-        agendamento.marcarFalta();
+        agendamento.marcarFalta(LocalDateTime.now());
         return toDTO(agendamentoRepository.save(agendamento));
     }
 

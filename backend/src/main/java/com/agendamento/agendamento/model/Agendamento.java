@@ -87,9 +87,12 @@ public class Agendamento {
         this.status = StatusAgendamento.CONCLUIDO;
     }
 
-    public void marcarFalta() {
+    public void marcarFalta(LocalDateTime agora) {
         if (this.status != StatusAgendamento.AGENDADO) {
             throw new IllegalStateException("Apenas agendamentos no status AGENDADO podem receber falta.");
+        }
+        if (agora.isBefore(this.dataHoraInicio)) {
+            throw new IllegalStateException("Só é possível registrar falta a partir do horário de início do agendamento.");
         }
         this.status = StatusAgendamento.FALTOU;
     }
