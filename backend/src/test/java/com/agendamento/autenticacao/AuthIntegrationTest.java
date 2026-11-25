@@ -96,11 +96,12 @@ class AuthIntegrationTest {
     }
 
     @Test
-    @DisplayName("CT05: Profissional sem especialidade é rejeitado")
-    void ct05_especialidadeObrigatoria() throws Exception {
+    @DisplayName("CT05: Profissional pode se cadastrar sem informar especialidade")
+    void ct05_profissionalSemEspecialidade() throws Exception {
         postJson("/api/auth/cadastro/profissional", jsonProfissional("Marcos Andrade", emailUnico("marcos"), ""))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.campos.especialidade").value("Informe a especialidade."));
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.token", not(emptyOrNullString())))
+                .andExpect(jsonPath("$.papel").value("PROFISSIONAL"));
     }
 
     @Test

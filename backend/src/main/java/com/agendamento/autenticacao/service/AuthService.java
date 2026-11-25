@@ -68,11 +68,14 @@ public class AuthService {
         String email = normalizar(dto.getEmail());
         garantirEmailLivre(email);
 
+        String especialidade = dto.getEspecialidade() != null && !dto.getEspecialidade().isBlank()
+                ? dto.getEspecialidade().trim()
+                : null;
         Usuario usuario = novoUsuario(email, dto.getSenha(), PapelUsuario.PROFISSIONAL);
         Profissional profissional = profissionalRepository.save(Profissional.builder()
                 .nome(dto.getNome().trim())
                 .telefone(dto.getTelefone().trim())
-                .especialidade(dto.getEspecialidade().trim())
+                .especialidade(especialidade)
                 .usuario(usuario)
                 .build());
 
@@ -103,9 +106,8 @@ public class AuthService {
         return respostaDoUsuario(usuario);
     }
 
-    // ---- internos
-
-    private AuthResponse respostaDoUsuario(Usuario usuario) {
+    @Transactional(readOnly = true)
+    public AuthResponse respostaDoUsuario(Usuario usuario) {
         return switch (usuario.getPapel()) {
             case CLIENTE -> {
                 Cliente c = clienteRepository.findByUsuarioId(usuario.getId())
@@ -117,7 +119,12 @@ public class AuthService {
                         .orElseThrow(() -> new RecursoNaoEncontradoException("Perfil de profissional não encontrado."));
                 yield resposta(usuario, p.getId(), p.getNome());
             }
-            case ADMIN -> resposta(usuario, null, "Administrador");
+            case ADMIN -> {
+                String nomeAdmin = (usuario.getNome() != null && !usuario.getNome().isBlank())
+                        ? usuario.getNome()
+                        : "Administrador";
+                yield resposta(usuario, null, nomeAdmin);
+            }
         };
     }
 
