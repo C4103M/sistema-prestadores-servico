@@ -1,5 +1,7 @@
 export type StatusAgendamento = 'AGENDADO' | 'CONCLUIDO' | 'CANCELADO' | 'FALTOU';
 
+export type StatusCategoria = 'PENDENTE' | 'APROVADA' | 'REJEITADA';
+
 export type PapelUsuario = 'ADMIN' | 'CLIENTE' | 'PROFISSIONAL';
 
 /** Cada ator do diagrama de casos de uso tem a sua área, com rotas próprias. */
@@ -13,6 +15,39 @@ export type DiaSemana =
   | 'QUINTA'
   | 'SEXTA'
   | 'SABADO';
+
+export interface Categoria {
+  id: number;
+  nome: string;
+  shortDescription: string;
+  imagemUrl: string;
+  status: StatusCategoria;
+  criadoPorUsuarioId: number | null;
+  criadoPorEmail: string | null;
+  totalServicosAtivos: number;
+  criadoEm: string;
+}
+
+export interface UsuarioAdmin {
+  id: number;
+  nome: string;
+  email: string;
+  telefone: string | null;
+  especialidade: string | null;
+  papel: PapelUsuario;
+  ativo: boolean;
+  criadoEm: string;
+}
+
+export interface PerfilUsuario {
+  usuarioId: number;
+  perfilId: number | null;
+  papel: PapelUsuario;
+  nome: string;
+  email: string;
+  telefone: string | null;
+  especialidade: string | null;
+}
 
 export interface Profissional {
   id: number;
@@ -39,7 +74,9 @@ export interface Servico {
   ativo: boolean;
   profissionalId: number;
   profissionalNome: string;
+  categoriaId?: number;
   categoria: string;
+  categoriaStatus?: StatusCategoria;
 }
 
 export interface Disponibilidade {
@@ -125,9 +162,13 @@ export interface AdminDashboardResponse {
 export type Tela =
   | 'cliente/buscar'
   | 'cliente/agendamentos'
+  | 'cliente/perfil'
   | 'profissional/agenda'
   | 'profissional/servicos'
   | 'profissional/disponibilidade'
   | 'profissional/dashboard'
-  | 'admin/servicos'
-  | 'admin/dashboard';
+  | 'profissional/perfil'
+  | 'admin/usuarios'
+  | 'admin/categorias'
+  | 'admin/dashboard'
+  | 'admin/perfil';

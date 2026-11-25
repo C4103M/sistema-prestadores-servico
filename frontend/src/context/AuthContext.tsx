@@ -7,6 +7,7 @@ import {
   salvarSessao,
 } from '../services/sessao';
 import type {
+  AuthResponse,
   CadastroPayload,
   CadastroProfissionalPayload,
   Sessao,
@@ -17,6 +18,7 @@ interface AuthContextValue {
   entrar: (email: string, senha: string) => Promise<void>;
   cadastrarCliente: (payload: CadastroPayload) => Promise<void>;
   cadastrarProfissional: (payload: CadastroProfissionalPayload) => Promise<void>;
+  atualizarSessao: (auth: AuthResponse) => void;
   sair: () => void;
 }
 
@@ -87,9 +89,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessao(salvarSessao(await api.auth.cadastrarProfissional(payload)));
   }, []);
 
+  const atualizarSessao = useCallback((auth: AuthResponse) => {
+    setSessao(salvarSessao(auth));
+  }, []);
+
   const value = useMemo(
-    () => ({ sessao, entrar, cadastrarCliente, cadastrarProfissional, sair }),
-    [sessao, entrar, cadastrarCliente, cadastrarProfissional, sair]
+    () => ({ sessao, entrar, cadastrarCliente, cadastrarProfissional, atualizarSessao, sair }),
+    [sessao, entrar, cadastrarCliente, cadastrarProfissional, atualizarSessao, sair]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

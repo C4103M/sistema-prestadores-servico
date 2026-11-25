@@ -8,6 +8,8 @@ import {
   LogOut,
   Search,
   Scissors,
+  UserRound,
+  Users,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { Area, Tela } from '../types';
@@ -18,21 +20,25 @@ interface ItemNav {
   Icone: typeof Search;
 }
 
-// Navegação de cada ator, conforme o diagrama de casos de uso
+// Navegação de cada ator
 export const NAV: Record<Area, ItemNav[]> = {
   cliente: [
     { tela: 'cliente/buscar', rotulo: 'Encontrar serviço', Icone: Search },
     { tela: 'cliente/agendamentos', rotulo: 'Meus agendamentos', Icone: CalendarCheck2 },
+    { tela: 'cliente/perfil', rotulo: 'Meus dados', Icone: UserRound },
   ],
   profissional: [
     { tela: 'profissional/agenda', rotulo: 'Agenda', Icone: CalendarDays },
     { tela: 'profissional/servicos', rotulo: 'Serviços', Icone: Scissors },
     { tela: 'profissional/disponibilidade', rotulo: 'Disponibilidade', Icone: Clock4 },
     { tela: 'profissional/dashboard', rotulo: 'Dashboard', Icone: ChartColumn },
+    { tela: 'profissional/perfil', rotulo: 'Meus dados', Icone: UserRound },
   ],
   admin: [
-    { tela: 'admin/servicos', rotulo: 'Serviços', Icone: LayoutGrid },
+    { tela: 'admin/usuarios', rotulo: 'Usuários', Icone: Users },
+    { tela: 'admin/categorias', rotulo: 'Categorias', Icone: LayoutGrid },
     { tela: 'admin/dashboard', rotulo: 'Dashboard', Icone: ChartColumn },
+    { tela: 'admin/perfil', rotulo: 'Meus dados', Icone: UserRound },
   ],
 };
 
@@ -105,7 +111,11 @@ export function AppShell({ area, tela, onNavegar, children }: AppShellProps) {
           </nav>
         </div>
         <div className="mt-auto space-y-2">
-          <div className="flex items-center gap-3 rounded-lg bg-paper p-3">
+          <button
+            type="button"
+            onClick={() => onNavegar(`${area}/perfil` as Tela)}
+            className="flex w-full items-center gap-3 rounded-lg bg-paper p-3 text-left transition-colors duration-150 hover:bg-ink-soft"
+          >
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink-soft text-xs font-bold text-ink">
               {iniciaisDe(nome)}
             </span>
@@ -113,7 +123,7 @@ export function AppShell({ area, tela, onNavegar, children }: AppShellProps) {
               <p className="truncate text-sm font-semibold">{nome}</p>
               <p className="truncate text-xs text-muted">{area_.detalhe}</p>
             </div>
-          </div>
+          </button>
           <button type="button" className="btn btn-ghost btn-sm w-full justify-start" onClick={sair}>
             <LogOut className="size-4" aria-hidden />
             Sair

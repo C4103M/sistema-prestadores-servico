@@ -2,12 +2,16 @@ import axios, { AxiosError } from 'axios';
 import type {
   AdminDashboardResponse,
   Agendamento,
+  Categoria,
   DashboardResponse,
   DiaSemana,
   Disponibilidade,
   HealthStatus,
+  PapelUsuario,
+  PerfilUsuario,
   Profissional,
   Servico,
+  UsuarioAdmin,
 } from '../types';
 import { EVENTO_SESSAO_EXPIRADA } from './sessao';
 import type { AuthResponse, CadastroPayload, CadastroProfissionalPayload } from './sessao';
@@ -63,8 +67,9 @@ function toApiError(err: unknown): ApiError {
     }
     const { status, data } = axErr.response;
     const endpoint = axErr.config?.url ?? '';
+    const contaBloqueada = status === 403 && data?.title === 'Conta desativada';
     if (
-      status === 401 &&
+      (status === 401 || contaBloqueada) &&
       !endpoint.includes('/auth/login') &&
       !endpoint.includes('/auth/cadastro/') &&
       typeof window !== 'undefined'
@@ -117,6 +122,7 @@ export interface AgendamentoPayload {
 export interface ServicoPayload {
   nome: string;
   descricao?: string;
+  categoriaId?: number;
   categoria?: string;
   duracaoMinutos: number;
   preco: number;
@@ -129,6 +135,24 @@ export interface DisponibilidadePayload {
   horaInicio: string;
   horaFim: string;
   profissionalId?: number;
+}
+
+export interface CategoriaPayload {
+  nome: string;
+  shortDescription: string;
+  imagemUrl: string;
+}
+
+export interface AtualizarPerfilPayload {
+  nome: string;
+  email: string;
+  telefone?: string;
+  especialidade?: string;
+}
+
+export interface AlterarSenhaPayload {
+  senhaAtual: string;
+  novaSenha: string;
 }
 
 export const api = {
@@ -144,7 +168,24 @@ export const api = {
     renovar: () => request<AuthResponse>(() => http.post<AuthResponse>('/auth/renovar')),
   },
 
+  uploads: {
+    enviarImagem: (arquivo: File) => {
+      const form = new FormData();
+      form.append('arquivo', arquivo);
+      return request<{ url: string }>(() => http.post<{ url: string }>('/uploads/imagens', form));
+    },
+  },
+
+  perfil: {
+    obter: () => request<PerfilUsuario>(() => http.get<PerfilUsuario>('/perfil')),
+    atualizar: (payload: AtualizarPerfilPayload) =>
+      request<AuthResponse>(() => http.put<AuthResponse>('/perfil', payload)),
+    alterarSenha: (payload: AlterarSenhaPayload) =>
+      request<void>(() => http.patch<void>('/perfil/senha', payload)),
+  },
+
   cliente: {
+    listarCategorias: () => request<Categoria[]>(() => http.get<Categoria[]>('/cliente/categorias')),
     buscarServicos: (busca?: string) =>
       request<Servico[]>(() => http.get<Servico[]>('/cliente/servicos', { params: busca ? { busca } : undefined })),
     buscarProfissionais: (busca?: string) =>
@@ -179,6 +220,11 @@ export const api = {
   },
 
   profissional: {
+    listarCategorias: (profissionalId: number) =>
+      request<Categoria[]>(() => http.get<Categoria[]>(`/profissional/${profissionalId}/categorias`)),
+    sugerirCategoria: (profissionalId: number, payload: CategoriaPayload) =>
+      request<Categoria>(() => http.post<Categoria>(`/profissional/${profissionalId}/categorias`, payload)),
+
     listarServicos: (profissionalId: number) =>
       request<Servico[]>(() => http.get<Servico[]>(`/profissional/${profissionalId}/servicos`)),
     criarServico: (profissionalId: number, payload: ServicoPayload) =>
@@ -232,17 +278,21 @@ export const api = {
   },
 
   admin: {
-    listarProfissionais: () => request<Profissional[]>(() => http.get<Profissional[]>('/admin/profissionais')),
-    listarServicos: () => request<Servico[]>(() => http.get<Servico[]>('/admin/servicos')),
-    criarServico: (payload: ServicoPayload) =>
-      request<Servico>(() => http.post<Servico>('/admin/servicos', payload)),
-    atualizarServico: (id: number, payload: ServicoPayload) =>
-      request<Servico>(() => http.put<Servico>(`/admin/servicos/${id}`, payload)),
-    alternarStatusServico: (id: number) =>
-      request<void>(() => http.patch<void>(`/admin/servicos/${id}/status`)),
-    excluirServico: (id: number) =>
-      request<void>(() => http.delete<void>(`/admin/servicos/${id}`)),
-    listarAgendamentos: () => request<Agendamento[]>(() => http.get<Agendamento[]>('/admin/agendamentos')),
+    listarUsuarios: (filtros?: { papel?: PapelUsuario; ativo?: boolean; busca?: string }) =>
+      request<UsuarioAdmin[]>(() => http.get<UsuarioAdmin[]>('/admin/usuarios', { params: filtros })),
+    alternarStatusUsuario: (id: number) =>
+      request<UsuarioAdmin>(() => http.patch<UsuarioAdmin>(`/admin/usuarios/${id}/status`)),
+
+    listarCategorias: () => request<Categoria[]>(() => http.get<Categoria[]>('/admin/categorias')),
+    criarCategoria: (payload: CategoriaPayload) =>
+      request<Categoria>(() => http.post<Categoria>('/admin/categorias', payload)),
+    atualizarCategoria: (id: number, payload: CategoriaPayload) =>
+      request<Categoria>(() => http.put<Categoria>(`/admin/categorias/${id}`, payload)),
+    aprovarCategoria: (id: number) =>
+      request<Categoria>(() => http.patch<Categoria>(`/admin/categorias/${id}/aprovar`)),
+    rejeitarCategoria: (id: number) =>
+      request<Categoria>(() => http.patch<Categoria>(`/admin/categorias/${id}/rejeitar`)),
+
     obterDashboard: (de?: string, ate?: string) =>
       request<AdminDashboardResponse>(() =>
         http.get<AdminDashboardResponse>('/admin/dashboard', {

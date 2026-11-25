@@ -28,7 +28,7 @@ export interface CadastroPayload {
 }
 
 export interface CadastroProfissionalPayload extends CadastroPayload {
-  especialidade: string;
+  especialidade?: string;
 }
 
 // A chave do token é a mesma que o interceptor de services/api.ts já lê.
@@ -79,7 +79,7 @@ export function lerSessao(): Sessao | null {
 const TELA_INICIAL: Record<Papel, Tela> = {
   CLIENTE: 'cliente/buscar',
   PROFISSIONAL: 'profissional/agenda',
-  ADMIN: 'admin/servicos',
+  ADMIN: 'admin/usuarios',
 };
 
 const AREA_DO_PAPEL: Record<Papel, Area> = {

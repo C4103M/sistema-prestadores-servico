@@ -3,22 +3,26 @@ import { CalendarCheck2 } from 'lucide-react';
 import { ApiError } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-type CampoCadastro = 'nome' | 'email' | 'telefone' | 'especialidade' | 'senha';
+type CampoCadastro = 'nome' | 'email' | 'telefone' | 'senha' | 'confirmarSenha';
 type ErrosCadastro = Partial<Record<CampoCadastro, string>>;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validarCadastro(
-  papel: 'CLIENTE' | 'PROFISSIONAL',
-  dados: { nome: string; email: string; telefone: string; especialidade: string; senha: string }
-): ErrosCadastro {
+function validarCadastro(dados: {
+  nome: string;
+  email: string;
+  telefone: string;
+  senha: string;
+  confirmarSenha: string;
+}): ErrosCadastro {
   const erros: ErrosCadastro = {};
   if (!dados.nome.trim()) erros.nome = 'Informe o nome.';
   if (!dados.email.trim() || !EMAIL_REGEX.test(dados.email.trim())) erros.email = 'Informe um e-mail válido.';
   if (!dados.telefone.trim()) erros.telefone = 'Informe o telefone.';
-  if (papel === 'PROFISSIONAL' && !dados.especialidade.trim()) erros.especialidade = 'Informe a especialidade.';
   if (!dados.senha) erros.senha = 'Informe a senha.';
   else if (dados.senha.length < 6 || dados.senha.length > 72) erros.senha = 'A senha deve ter entre 6 e 72 caracteres.';
+  if (!dados.confirmarSenha) erros.confirmarSenha = 'Confirme a senha.';
+  else if (dados.confirmarSenha !== dados.senha) erros.confirmarSenha = 'As senhas não conferem.';
   return erros;
 }
 
@@ -28,8 +32,8 @@ export function CadastroPage() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
-  const [especialidade, setEspecialidade] = useState('');
   const [senha, setSenha] = useState('');
+  const [confirmarSenha, setConfirmarSenha] = useState('');
   const [erro, setErro] = useState('');
   const [campos, setCampos] = useState<ErrosCadastro>({});
   const [enviando, setEnviando] = useState(false);
@@ -43,14 +47,14 @@ export function CadastroPage() {
   const enviar = async (e: FormEvent) => {
     e.preventDefault();
     setErro('');
-    const errosLocais = validarCadastro(papel, { nome, email, telefone, especialidade, senha });
+    const errosLocais = validarCadastro({ nome, email, telefone, senha, confirmarSenha });
     setCampos(errosLocais);
     if (Object.keys(errosLocais).length > 0) return;
 
     setEnviando(true);
     const dados = { nome: nome.trim(), email: email.trim(), telefone: telefone.trim(), senha };
     try {
-      if (papel === 'PROFISSIONAL') await cadastrarProfissional({ ...dados, especialidade: especialidade.trim() });
+      if (papel === 'PROFISSIONAL') await cadastrarProfissional(dados);
       else await cadastrarCliente(dados);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -128,21 +132,6 @@ export function CadastroPage() {
             />
             {campos.telefone && <p id="erro-telefone" className="erro-campo">{campos.telefone}</p>}
           </div>
-          {papel === 'PROFISSIONAL' && (
-            <div>
-              <label className="label" htmlFor="especialidade">Especialidade</label>
-              <input
-                id="especialidade"
-                className="input"
-                maxLength={120}
-                value={especialidade}
-                aria-invalid={campos.especialidade ? true : undefined}
-                aria-describedby={campos.especialidade ? 'erro-especialidade' : undefined}
-                onChange={(e) => setEspecialidade(e.target.value)}
-              />
-              {campos.especialidade && <p id="erro-especialidade" className="erro-campo">{campos.especialidade}</p>}
-            </div>
-          )}
           <div>
             <label className="label" htmlFor="senha">Senha</label>
             <input
@@ -157,6 +146,21 @@ export function CadastroPage() {
               onChange={(e) => setSenha(e.target.value)}
             />
             {campos.senha && <p id="erro-senha" className="erro-campo">{campos.senha}</p>}
+          </div>
+          <div>
+            <label className="label" htmlFor="confirmar-senha">Confirmar senha</label>
+            <input
+              id="confirmar-senha"
+              className="input"
+              type="password"
+              autoComplete="new-password"
+              maxLength={72}
+              value={confirmarSenha}
+              aria-invalid={campos.confirmarSenha ? true : undefined}
+              aria-describedby={campos.confirmarSenha ? 'erro-confirmar-senha' : undefined}
+              onChange={(e) => setConfirmarSenha(e.target.value)}
+            />
+            {campos.confirmarSenha && <p id="erro-confirmar-senha" className="erro-campo">{campos.confirmarSenha}</p>}
           </div>
           {erro && <p className="erro-campo" role="alert">{erro}</p>}
           <button className="btn btn-primary w-full" type="submit" disabled={enviando}>

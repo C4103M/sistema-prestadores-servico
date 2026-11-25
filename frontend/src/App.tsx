@@ -10,17 +10,22 @@ import { AgendaPage } from './pages/AgendaPage';
 import { ServicosPage } from './pages/ServicosPage';
 import { DisponibilidadePage } from './pages/DisponibilidadePage';
 import { DashboardPage } from './pages/DashboardPage';
+import { AdminUsuariosPage } from './pages/AdminUsuariosPage';
+import { AdminCategoriasPage } from './pages/AdminCategoriasPage';
+import { PerfilPage } from './pages/PerfilPage';
 import { useAuth } from './context/AuthContext';
-import { ApiError, api } from './services/api';
+import { ApiError, api, type CategoriaPayload } from './services/api';
 import { areaDoPapel, telaInicial, type Sessao } from './services/sessao';
 import type {
   Agendamento,
   Area,
+  Categoria,
   Disponibilidade,
   Profissional,
   Servico,
   StatusAgendamento,
   Tela,
+  UsuarioAdmin,
 } from './types';
 
 const TELAS = Object.values(NAV).flatMap((itens) => itens.map((i) => i.tela));
@@ -82,6 +87,8 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
   const perfilId = sessao.perfilId ?? 0;
 
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([]);
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [disponibilidades, setDisponibilidades] = useState<Disponibilidade[]>([]);
@@ -94,10 +101,11 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
     setErroApi('');
     try {
       if (sessao.papel === 'CLIENTE') {
-        const [profs, listaServicos, meus] = await Promise.all([
+        const [profs, listaServicos, meus, cats] = await Promise.all([
           api.cliente.buscarProfissionais(),
           api.cliente.buscarServicos(),
           api.cliente.listarAgendamentos(perfilId),
+          api.cliente.listarCategorias(),
         ]);
         const listasDisp = await Promise.all(
           profs.map((p) => api.cliente.listarDisponibilidades(p.id))
@@ -105,25 +113,26 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
         setProfissionais(profs);
         setServicos(listaServicos);
         setAgendamentos(meus);
+        setCategorias(cats);
         setDisponibilidades(listasDisp.flat());
       } else if (sessao.papel === 'PROFISSIONAL') {
-        const [meusServicos, agenda, faixas] = await Promise.all([
+        const [meusServicos, agenda, faixas, cats] = await Promise.all([
           api.profissional.listarServicos(perfilId),
           api.profissional.listarAgenda(perfilId),
           api.profissional.listarDisponibilidades(perfilId),
+          api.profissional.listarCategorias(perfilId),
         ]);
         setServicos(meusServicos);
         setAgendamentos(agenda);
         setDisponibilidades(faixas);
+        setCategorias(cats);
       } else {
-        const [profs, listaServicos, listaAgendamentos] = await Promise.all([
-          api.admin.listarProfissionais(),
-          api.admin.listarServicos(),
-          api.admin.listarAgendamentos(),
+        const [listaUsuarios, cats] = await Promise.all([
+          api.admin.listarUsuarios(),
+          api.admin.listarCategorias(),
         ]);
-        setProfissionais(profs);
-        setServicos(listaServicos);
-        setAgendamentos(listaAgendamentos);
+        setUsuarios(listaUsuarios);
+        setCategorias(cats);
       }
       setCarregado(true);
     } catch (err) {
@@ -149,20 +158,17 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
     const payload = {
       nome: s.nome,
       descricao: s.descricao,
+      categoriaId: s.categoriaId,
       categoria: s.categoria,
       duracaoMinutos: s.duracaoMinutos,
       preco: s.preco,
       ativo: s.ativo,
-      profissionalId: s.profissionalId,
+      profissionalId: perfilId,
     };
     try {
       const salvo = existente
-        ? area === 'admin'
-          ? await api.admin.atualizarServico(s.id, payload)
-          : await api.profissional.atualizarServico(perfilId, s.id, payload)
-        : area === 'admin'
-          ? await api.admin.criarServico(payload)
-          : await api.profissional.criarServico(perfilId, payload);
+        ? await api.profissional.atualizarServico(perfilId, s.id, payload)
+        : await api.profissional.criarServico(perfilId, payload);
 
       setServicos((prev) => (existente ? prev.map((x) => (x.id === salvo.id ? salvo : x)) : [...prev, salvo]));
     } catch (err) {
@@ -174,11 +180,7 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
   const excluirServico = async (id: number) => {
     setErroApi('');
     try {
-      if (area === 'admin') {
-        await api.admin.excluirServico(id);
-      } else {
-        await api.profissional.excluirServico(perfilId, id);
-      }
+      await api.profissional.excluirServico(perfilId, id);
       setServicos((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
       setErroApi(mensagemDeErro(err, 'Não foi possível excluir o serviço.'));
@@ -189,14 +191,57 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
   const alternarServico = async (id: number) => {
     setErroApi('');
     try {
-      if (area === 'admin') {
-        await api.admin.alternarStatusServico(id);
-      } else {
-        await api.profissional.alternarStatusServico(perfilId, id);
-      }
+      await api.profissional.alternarStatusServico(perfilId, id);
       setServicos((prev) => prev.map((s) => (s.id === id ? { ...s, ativo: !s.ativo } : s)));
     } catch (err) {
       setErroApi(mensagemDeErro(err, 'Não foi possível atualizar a situação do serviço.'));
+    }
+  };
+
+  const sugerirCategoria = async (payload: CategoriaPayload): Promise<Categoria> => {
+    const criada = await api.profissional.sugerirCategoria(perfilId, payload);
+    setCategorias((prev) => [...prev, criada]);
+    return criada;
+  };
+
+  const criarCategoriaAdmin = async (payload: CategoriaPayload) => {
+    const criada = await api.admin.criarCategoria(payload);
+    setCategorias((prev) => [...prev, criada]);
+  };
+
+  const atualizarCategoriaAdmin = async (id: number, payload: CategoriaPayload) => {
+    const atualizada = await api.admin.atualizarCategoria(id, payload);
+    setCategorias((prev) => prev.map((c) => (c.id === id ? atualizada : c)));
+  };
+
+  const aprovarCategoria = async (id: number) => {
+    setErroApi('');
+    try {
+      const atualizada = await api.admin.aprovarCategoria(id);
+      setCategorias((prev) => prev.map((c) => (c.id === id ? atualizada : c)));
+    } catch (err) {
+      setErroApi(mensagemDeErro(err, 'Não foi possível aprovar a categoria.'));
+    }
+  };
+
+  const rejeitarCategoria = async (id: number) => {
+    setErroApi('');
+    try {
+      const atualizada = await api.admin.rejeitarCategoria(id);
+      setCategorias((prev) => prev.map((c) => (c.id === id ? atualizada : c)));
+    } catch (err) {
+      setErroApi(mensagemDeErro(err, 'Não foi possível rejeitar a categoria.'));
+    }
+  };
+
+  const alternarStatusUsuario = async (id: number) => {
+    setErroApi('');
+    try {
+      const atualizado = await api.admin.alternarStatusUsuario(id);
+      setUsuarios((prev) => prev.map((u) => (u.id === id ? atualizado : u)));
+    } catch (err) {
+      setErroApi(mensagemDeErro(err, 'Não foi possível alterar a situação do usuário.'));
+      throw err;
     }
   };
 
@@ -307,6 +352,7 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
             <HomePage
               clienteId={perfilId}
               clienteNome={sessao.nome}
+              categorias={categorias}
               servicos={servicos}
               agendamentos={agendamentos}
               disponibilidades={disponibilidades}
@@ -331,17 +377,17 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
               onAtualizarStatus={(id, status) => mudarStatus(id, status)}
             />
           )}
-          {(tela === 'profissional/servicos' || tela === 'admin/servicos') && (
+          {tela === 'profissional/servicos' && (
             <ServicosPage
-              key={tela}
-              area={area as 'profissional' | 'admin'}
-              profissionalId={area === 'profissional' ? perfilId : undefined}
+              profissionalId={perfilId}
               servicos={servicos}
+              categorias={categorias}
               agendamentos={agendamentos}
-              profissionais={profissionais}
+              usuarioId={sessao.usuarioId}
               onSalvar={salvarServico}
               onExcluir={excluirServico}
               onAlternarAtivo={alternarServico}
+              onSugerirCategoria={sugerirCategoria}
             />
           )}
           {tela === 'profissional/disponibilidade' && (
@@ -352,12 +398,27 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
               onExcluir={excluirFaixa}
             />
           )}
+          {tela === 'admin/usuarios' && (
+            <AdminUsuariosPage usuarios={usuarios} onAlternarStatus={alternarStatusUsuario} />
+          )}
+          {tela === 'admin/categorias' && (
+            <AdminCategoriasPage
+              categorias={categorias}
+              onCriar={criarCategoriaAdmin}
+              onAtualizar={atualizarCategoriaAdmin}
+              onAprovar={aprovarCategoria}
+              onRejeitar={rejeitarCategoria}
+            />
+          )}
           {(tela === 'profissional/dashboard' || tela === 'admin/dashboard') && (
             <DashboardPage
               key={tela}
               area={area as 'profissional' | 'admin'}
               profissionalId={area === 'profissional' ? perfilId : undefined}
             />
+          )}
+          {(tela === 'cliente/perfil' || tela === 'profissional/perfil' || tela === 'admin/perfil') && (
+            <PerfilPage />
           )}
         </>
       )}

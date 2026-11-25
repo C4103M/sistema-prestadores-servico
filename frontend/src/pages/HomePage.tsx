@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CalendarCheck2, ChevronDown, Clock, RefreshCw, Search, X } from 'lucide-react';
-import type { Agendamento, Disponibilidade, Profissional, Servico } from '../types';
+import type { Agendamento, Categoria, Disponibilidade, Profissional, Servico } from '../types';
 import { PageHeader } from '../components/PageHeader';
 import { EmptyState } from '../components/EmptyState';
 import { ApiError, api, formatLocalDateTime } from '../services/api';
@@ -12,6 +12,7 @@ const dataIso = (d: Date) => formatLocalDateTime(d).slice(0, 10);
 interface HomePageProps {
   clienteId: number;
   clienteNome: string;
+  categorias: Categoria[];
   servicos: Servico[];
   agendamentos: Agendamento[];
   disponibilidades: Disponibilidade[];
@@ -26,6 +27,7 @@ const normalizar = (s: string) =>
 export function HomePage({
   clienteId,
   clienteNome,
+  categorias: categoriasPublicas,
   servicos,
   agendamentos,
   disponibilidades,
@@ -46,7 +48,15 @@ export function HomePage({
   };
 
   const ativos = servicos.filter((s) => s.ativo);
-  const categorias = ['Todas', ...Array.from(new Set(ativos.map((s) => s.categoria).filter(Boolean)))];
+  const categorias = [
+    'Todas',
+    ...Array.from(
+      new Set([
+        ...categoriasPublicas.map((c) => c.nome),
+        ...ativos.map((s) => s.categoria).filter(Boolean),
+      ])
+    ),
+  ];
 
   const termo = normalizar(busca.trim());
   const naCategoria = (s: Servico) => categoria === 'Todas' || s.categoria === categoria;
@@ -111,6 +121,62 @@ export function HomePage({
         titulo="Encontre um serviço ou profissional"
         descricao="Os horários mostrados já descontam a agenda do profissional: o que aparece aqui está livre de verdade."
       />
+
+      {categoriasPublicas.length > 0 && (
+        <section aria-labelledby="titulo-categorias-destaque" className="space-y-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="titulo-categorias-destaque" className="text-lg font-bold">
+              Categorias disponíveis
+            </h2>
+            {categoria !== 'Todas' && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setCategoria('Todas')}
+              >
+                Mostrar todas
+              </button>
+            )}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {categoriasPublicas.map((cat) => {
+              const ativa = categoria === cat.nome;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  aria-pressed={ativa}
+                  onClick={() => setCategoria(ativa ? 'Todas' : cat.nome)}
+                  className={`group painel flex flex-col overflow-hidden text-left transition-all duration-150 ${
+                    ativa
+                      ? 'border-marker bg-marker-soft/35 ring-2 ring-marker/25'
+                      : 'hover:border-rule-strong hover:bg-paper/40'
+                  }`}
+                >
+                  <div className="relative h-32 w-full overflow-hidden bg-paper">
+                    <img
+                      src={cat.imagemUrl}
+                      alt={cat.nome}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                  <div className="flex flex-1 flex-col p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="font-bold text-ink">{cat.nome}</h3>
+                      <span className="tabular shrink-0 rounded-full bg-ink-soft px-2 py-0.5 text-[0.6875rem] font-semibold text-muted">
+                        {cat.totalServicosAtivos === 1 ? '1 serviço' : `${cat.totalServicosAtivos} serviços`}
+                      </span>
+                    </div>
+                    <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted">
+                      {cat.shortDescription}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <section aria-label="Busca" className="min-w-0 space-y-5">
