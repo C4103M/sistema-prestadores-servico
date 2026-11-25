@@ -1,15 +1,18 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshCw, X } from 'lucide-react';
 import { AppShell, NAV } from './components/AppShell';
 import { InicioPage } from './pages/InicioPage';
+import { LoginPage } from './pages/LoginPage';
+import { CadastroPage } from './pages/CadastroPage';
 import { HomePage } from './pages/HomePage';
 import { MeusAgendamentosPage } from './pages/MeusAgendamentosPage';
 import { AgendaPage } from './pages/AgendaPage';
 import { ServicosPage } from './pages/ServicosPage';
 import { DisponibilidadePage } from './pages/DisponibilidadePage';
 import { DashboardPage } from './pages/DashboardPage';
-import { ApiError, api } from './services/api';
-import { CLIENTE_LOGADO_ID, PROFISSIONAL_LOGADO_ID } from './services/mockData';
+import { useAuth } from './context/AuthContext';
+import { ApiError, api, formatLocalDateTime } from './services/api';
+import { areaDoPapel, telaInicial, type Sessao } from './services/sessao';
 import type {
   Agendamento,
   Area,
@@ -22,12 +25,13 @@ import type {
 
 const TELAS = Object.values(NAV).flatMap((itens) => itens.map((i) => i.tela));
 
-// Rotas por ator: #/cliente/..., #/profissional/..., #/admin/...  (#/ é a escolha da área)
-const telaDoHash = (): Tela | null => {
-  const t = window.location.hash.replace(/^#\/?/, '');
-  if (TELAS.includes(t as Tela)) return t as Tela;
+// Rotas: #/ (início), #/login, #/cadastro e, por ator, #/cliente/..., #/profissional/..., #/admin/...
+const hashAtual = () => window.location.hash.replace(/^#\/?/, '');
+
+const telaDe = (hash: string): Tela | null => {
+  if (TELAS.includes(hash as Tela)) return hash as Tela;
   // #/cliente, #/profissional e #/admin abrem a primeira tela da área
-  if (t in NAV) return NAV[t as Area][0].tela;
+  if (Object.hasOwn(NAV, hash)) return NAV[hash as Area][0].tela;
   return null;
 };
 
@@ -36,11 +40,84 @@ const areaDa = (tela: Tela) => tela.split('/')[0] as Area;
 const mensagemDeErro = (err: unknown, fallback: string) =>
   err instanceof ApiError || err instanceof Error ? err.message : fallback;
 
+// O cliente só enxerga os próprios agendamentos; para montar os horários livres ele recebe
+// da API apenas os intervalos ocupados de cada profissional (sem nomes de outros clientes).
+const JANELA_OCUPADOS_DIAS = 14;
+const dataIso = (d: Date) => formatLocalDateTime(d).slice(0, 10);
+
+async function buscarOcupados(profs: Profissional[]): Promise<Agendamento[]> {
+  const hoje = new Date();
+  const fim = new Date();
+  fim.setDate(fim.getDate() + JANELA_OCUPADOS_DIAS);
+  const listas = await Promise.all(
+    profs.map((p) => api.cliente.listarHorariosOcupados(p.id, dataIso(hoje), dataIso(fim)))
+  );
+  let n = 0;
+  return listas.flatMap((lista, i) =>
+    lista.map(
+      (o): Agendamento => ({
+        id: -(++n), // id negativo: nunca colide com um agendamento real
+        clienteId: 0,
+        clienteNome: '',
+        profissionalId: profs[i].id,
+        profissionalNome: profs[i].nome,
+        servicoId: 0,
+        servicoNome: '',
+        dataHoraInicio: o.dataHoraInicio,
+        dataHoraFim: o.dataHoraFim,
+        preco: 0,
+        status: 'AGENDADO',
+        criadoEm: o.dataHoraInicio,
+      })
+    )
+  );
+}
+
 export function App() {
-  const [tela, setTela] = useState<Tela | null>(telaDoHash);
+  const { sessao } = useAuth();
+  const [hash, setHash] = useState(hashAtual);
+
+  useEffect(() => {
+    const aoMudar = () => {
+      setHash(hashAtual());
+      window.scrollTo({ top: 0 });
+    };
+    window.addEventListener('hashchange', aoMudar);
+    return () => window.removeEventListener('hashchange', aoMudar);
+  }, []);
+
+  const tela = telaDe(hash);
+
+  // Guarda de rota: área restrita exige login e cada perfil só entra na própria área
+  let redirecionar: string | null = null;
+  if (hash === 'login' || hash === 'cadastro') {
+    if (sessao) redirecionar = telaInicial(sessao.papel);
+  } else if (tela !== null) {
+    if (!sessao) redirecionar = 'login';
+    else if (areaDa(tela) !== areaDoPapel(sessao.papel)) redirecionar = telaInicial(sessao.papel);
+  }
+
+  useEffect(() => {
+    if (redirecionar) window.location.hash = `/${redirecionar}`;
+  }, [redirecionar]);
+
+  if (redirecionar) return null;
+  if (hash === 'login') return <LoginPage />;
+  if (hash === 'cadastro') return <CadastroPage />;
+  if (tela === null || !sessao) return <InicioPage />;
+
+  // key: ao trocar de usuário, os dados carregados do anterior são descartados
+  return <AreaLogada key={sessao.usuarioId} sessao={sessao} tela={tela} />;
+}
+
+function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
+  const area = areaDa(tela);
+  const perfilId = sessao.perfilId ?? 0;
+
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  const [ocupados, setOcupados] = useState<Agendamento[]>([]);
   const [disponibilidades, setDisponibilidades] = useState<Disponibilidade[]>([]);
   const [carregando, setCarregando] = useState(false);
   const [carregado, setCarregado] = useState(false);
@@ -50,48 +127,60 @@ export function App() {
     setCarregando(true);
     setErroApi('');
     try {
-      const [profs, listaServicos, listaAgendamentos] = await Promise.all([
-        api.admin.listarProfissionais(),
-        api.admin.listarServicos(),
-        api.admin.listarAgendamentos(),
-      ]);
-      const listasDisp = await Promise.all(
-        profs.map((p) => api.cliente.listarDisponibilidades(p.id))
-      );
-      setProfissionais(profs);
-      setServicos(listaServicos);
-      setAgendamentos(listaAgendamentos);
-      setDisponibilidades(listasDisp.flat());
+      if (sessao.papel === 'CLIENTE') {
+        const [profs, listaServicos, meus] = await Promise.all([
+          api.cliente.buscarProfissionais(),
+          api.cliente.buscarServicos(),
+          api.cliente.listarAgendamentos(perfilId),
+        ]);
+        const [listasDisp, listaOcupados] = await Promise.all([
+          Promise.all(profs.map((p) => api.cliente.listarDisponibilidades(p.id))),
+          buscarOcupados(profs),
+        ]);
+        setProfissionais(profs);
+        setServicos(listaServicos);
+        setAgendamentos(meus);
+        setDisponibilidades(listasDisp.flat());
+        setOcupados(listaOcupados);
+      } else if (sessao.papel === 'PROFISSIONAL') {
+        const [meusServicos, agenda, faixas] = await Promise.all([
+          api.profissional.listarServicos(perfilId),
+          api.profissional.listarAgenda(perfilId),
+          api.profissional.listarDisponibilidades(perfilId),
+        ]);
+        setServicos(meusServicos);
+        setAgendamentos(agenda);
+        setDisponibilidades(faixas);
+      } else {
+        const [profs, listaServicos, listaAgendamentos] = await Promise.all([
+          api.admin.listarProfissionais(),
+          api.admin.listarServicos(),
+          api.admin.listarAgendamentos(),
+        ]);
+        setProfissionais(profs);
+        setServicos(listaServicos);
+        setAgendamentos(listaAgendamentos);
+      }
       setCarregado(true);
     } catch (err) {
       setErroApi(mensagemDeErro(err, 'Não foi possível carregar os dados da API.'));
     } finally {
       setCarregando(false);
     }
-  }, []);
+  }, [sessao.papel, perfilId]);
 
   useEffect(() => {
-    const aoMudar = () => {
-      setTela(telaDoHash());
-      window.scrollTo({ top: 0 });
-    };
-    window.addEventListener('hashchange', aoMudar);
-    return () => window.removeEventListener('hashchange', aoMudar);
-  }, []);
-
-  useEffect(() => {
-    if (tela !== null && !carregado) {
+    if (!carregado) {
       void carregarDados();
     }
-  }, [tela, carregado, carregarDados]);
+  }, [carregado, carregarDados]);
+
+  // Busca do cliente: seus agendamentos + os intervalos ocupados dos profissionais
+  const agendamentosParaBusca = useMemo(() => [...agendamentos, ...ocupados], [agendamentos, ocupados]);
 
   const navegar = (destino: Tela) => {
     window.location.hash = `/${destino}`;
   };
-
-  if (tela === null) return <InicioPage />;
-
-  const area = areaDa(tela);
 
   const salvarServico = async (s: Servico) => {
     setErroApi('');
@@ -109,10 +198,10 @@ export function App() {
       const salvo = existente
         ? area === 'admin'
           ? await api.admin.atualizarServico(s.id, payload)
-          : await api.profissional.atualizarServico(PROFISSIONAL_LOGADO_ID, s.id, payload)
+          : await api.profissional.atualizarServico(perfilId, s.id, payload)
         : area === 'admin'
           ? await api.admin.criarServico(payload)
-          : await api.profissional.criarServico(PROFISSIONAL_LOGADO_ID, payload);
+          : await api.profissional.criarServico(perfilId, payload);
 
       setServicos((prev) => (existente ? prev.map((x) => (x.id === salvo.id ? salvo : x)) : [...prev, salvo]));
     } catch (err) {
@@ -127,7 +216,7 @@ export function App() {
       if (area === 'admin') {
         await api.admin.excluirServico(id);
       } else {
-        await api.profissional.excluirServico(PROFISSIONAL_LOGADO_ID, id);
+        await api.profissional.excluirServico(perfilId, id);
       }
       setServicos((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
@@ -142,7 +231,7 @@ export function App() {
       if (area === 'admin') {
         await api.admin.alternarStatusServico(id);
       } else {
-        await api.profissional.alternarStatusServico(PROFISSIONAL_LOGADO_ID, id);
+        await api.profissional.alternarStatusServico(perfilId, id);
       }
       setServicos((prev) => prev.map((s) => (s.id === id ? { ...s, ativo: !s.ativo } : s)));
     } catch (err) {
@@ -161,29 +250,31 @@ export function App() {
     };
     try {
       const salva = existente
-        ? await api.profissional.atualizarDisponibilidade(f.profissionalId, f.id, payload)
-        : await api.profissional.criarDisponibilidade(f.profissionalId, payload);
+        ? await api.profissional.atualizarDisponibilidade(perfilId, f.id, payload)
+        : await api.profissional.criarDisponibilidade(perfilId, payload);
       setDisponibilidades((prev) =>
         existente ? prev.map((x) => (x.id === salva.id ? salva : x)) : [...prev, salva]
       );
     } catch (err) {
       setErroApi(mensagemDeErro(err, 'Não foi possível salvar a faixa de disponibilidade.'));
+      throw err;
     }
   };
 
   const excluirFaixa = async (id: number) => {
     setErroApi('');
     try {
-      await api.profissional.excluirDisponibilidade(PROFISSIONAL_LOGADO_ID, id);
+      await api.profissional.excluirDisponibilidade(perfilId, id);
       setDisponibilidades((prev) => prev.filter((d) => d.id !== id));
     } catch (err) {
       setErroApi(mensagemDeErro(err, 'Não foi possível remover a faixa de disponibilidade.'));
+      throw err;
     }
   };
 
   const criarAgendamento = async (novo: Agendamento): Promise<Agendamento> => {
     setErroApi('');
-    const salvo = await api.cliente.criarAgendamento(CLIENTE_LOGADO_ID, {
+    const salvo = await api.cliente.criarAgendamento(perfilId, {
       profissionalId: novo.profissionalId,
       servicoId: novo.servicoId,
       dataHoraInicio: novo.dataHoraInicio,
@@ -212,8 +303,13 @@ export function App() {
         return;
       }
       setAgendamentos((prev) => prev.map((a) => (a.id === id ? atualizado : a)));
+      // O horário cancelado volta a ficar livre para o cliente
+      if (status === 'CANCELADO' && area === 'cliente') {
+        setOcupados(await buscarOcupados(profissionais));
+      }
     } catch (err) {
       setErroApi(mensagemDeErro(err, 'Não foi possível atualizar o agendamento.'));
+      if (status === 'CANCELADO') throw err;
     }
   };
 
@@ -252,8 +348,10 @@ export function App() {
         <>
           {tela === 'cliente/buscar' && (
             <HomePage
+              clienteId={perfilId}
+              clienteNome={sessao.nome}
               servicos={servicos}
-              agendamentos={agendamentos}
+              agendamentos={agendamentosParaBusca}
               disponibilidades={disponibilidades}
               profissionais={profissionais}
               onCriarAgendamento={criarAgendamento}
@@ -262,22 +360,25 @@ export function App() {
           )}
           {tela === 'cliente/agendamentos' && (
             <MeusAgendamentosPage
+              clienteId={perfilId}
               agendamentos={agendamentos}
-              onCancelar={(id) => void mudarStatus(id, 'CANCELADO')}
+              onCancelar={(id) => mudarStatus(id, 'CANCELADO')}
               onAgendar={() => navegar('cliente/buscar')}
             />
           )}
           {tela === 'profissional/agenda' && (
             <AgendaPage
+              profissionalId={perfilId}
               agendamentos={agendamentos}
               disponibilidades={disponibilidades}
-              onAtualizarStatus={(id, status) => void mudarStatus(id, status)}
+              onAtualizarStatus={(id, status) => mudarStatus(id, status)}
             />
           )}
           {(tela === 'profissional/servicos' || tela === 'admin/servicos') && (
             <ServicosPage
               key={tela}
               area={area as 'profissional' | 'admin'}
+              profissionalId={area === 'profissional' ? perfilId : undefined}
               servicos={servicos}
               agendamentos={agendamentos}
               profissionais={profissionais}
@@ -288,13 +389,19 @@ export function App() {
           )}
           {tela === 'profissional/disponibilidade' && (
             <DisponibilidadePage
+              profissionalId={perfilId}
               disponibilidades={disponibilidades}
-              onSalvar={(f) => void salvarFaixa(f)}
-              onExcluir={(id) => void excluirFaixa(id)}
+              onSalvar={salvarFaixa}
+              onExcluir={excluirFaixa}
             />
           )}
           {(tela === 'profissional/dashboard' || tela === 'admin/dashboard') && (
-            <DashboardPage key={tela} area={area as 'profissional' | 'admin'} agendamentos={agendamentos} />
+            <DashboardPage
+              key={tela}
+              area={area as 'profissional' | 'admin'}
+              profissionalId={area === 'profissional' ? perfilId : undefined}
+              agendamentos={agendamentos}
+            />
           )}
         </>
       )}

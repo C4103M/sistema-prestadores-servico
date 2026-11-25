@@ -7,6 +7,8 @@ import type {
   Profissional,
   Servico,
 } from '../types';
+import { EVENTO_SESSAO_EXPIRADA } from './sessao';
+import type { AuthResponse, CadastroPayload, CadastroProfissionalPayload } from './sessao';
 
 export interface ProblemDetailPayload {
   title?: string;
@@ -58,6 +60,15 @@ function toApiError(err: unknown): ApiError {
       );
     }
     const { status, data } = axErr.response;
+    const endpoint = axErr.config?.url ?? '';
+    if (
+      status === 401 &&
+      !endpoint.includes('/auth/login') &&
+      !endpoint.includes('/auth/cadastro/') &&
+      typeof window !== 'undefined'
+    ) {
+      window.dispatchEvent(new Event(EVENTO_SESSAO_EXPIRADA));
+    }
     const msg =
       data?.detail ||
       data?.title ||
@@ -121,6 +132,15 @@ export interface DisponibilidadePayload {
 export const api = {
   health: () => request<HealthStatus>(() => http.get<HealthStatus>('/health')),
 
+  auth: {
+    login: (email: string, senha: string) =>
+      request<AuthResponse>(() => http.post<AuthResponse>('/auth/login', { email, senha })),
+    cadastrarCliente: (payload: CadastroPayload) =>
+      request<AuthResponse>(() => http.post<AuthResponse>('/auth/cadastro/cliente', payload)),
+    cadastrarProfissional: (payload: CadastroProfissionalPayload) =>
+      request<AuthResponse>(() => http.post<AuthResponse>('/auth/cadastro/profissional', payload)),
+  },
+
   cliente: {
     buscarServicos: (busca?: string) =>
       request<Servico[]>(() => http.get<Servico[]>('/cliente/servicos', { params: busca ? { busca } : undefined })),
@@ -134,6 +154,10 @@ export const api = {
       );
       return lista.map(normalizarDisponibilidade);
     },
+    listarHorariosOcupados: (profissionalId: number, de?: string, ate?: string) =>
+      request<{ dataHoraInicio: string; dataHoraFim: string }[]>(() =>
+        http.get(`/cliente/profissionais/${profissionalId}/horarios-ocupados`, { params: { de, ate } })
+      ),
     listarAgendamentos: (clienteId: number) =>
       request<Agendamento[]>(() => http.get<Agendamento[]>(`/cliente/${clienteId}/agendamentos`)),
     criarAgendamento: (clienteId: number, payload: AgendamentoPayload) =>

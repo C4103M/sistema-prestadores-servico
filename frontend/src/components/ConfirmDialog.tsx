@@ -7,7 +7,7 @@ interface ConfirmDialogProps {
   rotuloConfirmar: string;
   rotuloCancelar?: string;
   perigo?: boolean;
-  onConfirmar: () => void;
+  onConfirmar: () => void | Promise<void>;
   onFechar: () => void;
 }
 
@@ -51,9 +51,13 @@ export function ConfirmDialog({
         <button
           type="button"
           className={`btn ${perigo ? 'btn-danger' : 'btn-primary'}`}
-          onClick={() => {
-            onConfirmar();
-            onFechar();
+          onClick={async () => {
+            try {
+              await onConfirmar();
+              onFechar();
+            } catch {
+              // A tela chamadora apresenta o erro e mantém a confirmação aberta.
+            }
           }}
         >
           {rotuloConfirmar}

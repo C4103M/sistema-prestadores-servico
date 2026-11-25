@@ -7,7 +7,6 @@ import com.agendamento.servico.model.Servico;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Entity
@@ -57,10 +56,13 @@ public class Agendamento {
         if (this.status != StatusAgendamento.AGENDADO) {
             return false;
         }
-        return Duration.between(agora, this.dataHoraInicio).toMinutes() >= 120;
+        return !this.dataHoraInicio.isBefore(agora.plusHours(2));
     }
 
     public void cancelar(LocalDateTime agora) {
+        if (this.status != StatusAgendamento.AGENDADO) {
+            throw new IllegalStateException("Apenas agendamentos no status AGENDADO podem ser cancelados.");
+        }
         if (!podeCancelar(agora)) {
             throw new IllegalStateException("Cancelamento só permitido com no mínimo 2 horas de antecedência.");
         }
@@ -68,9 +70,12 @@ public class Agendamento {
     }
 
     // O profissional pode cancelar a qualquer momento antes do atendimento; a regra das 2h vale só para o cliente
-    public void cancelarPeloProfissional() {
+    public void cancelarPeloProfissional(LocalDateTime agora) {
         if (this.status != StatusAgendamento.AGENDADO) {
             throw new IllegalStateException("Apenas agendamentos no status AGENDADO podem ser cancelados.");
+        }
+        if (!this.dataHoraInicio.isAfter(agora)) {
+            throw new IllegalStateException("Agendamentos que já começaram não podem ser cancelados.");
         }
         this.status = StatusAgendamento.CANCELADO;
     }

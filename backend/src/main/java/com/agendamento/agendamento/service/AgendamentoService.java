@@ -4,6 +4,7 @@ import com.agendamento.admin.dto.response.AdminDashboardResponse;
 import com.agendamento.agendamento.dto.request.AgendamentoRequest;
 import com.agendamento.agendamento.dto.response.AgendamentoResponse;
 import com.agendamento.agendamento.dto.response.DashboardResponse;
+import com.agendamento.agendamento.dto.response.HorarioOcupadoResponse;
 import com.agendamento.agendamento.model.Agendamento;
 import com.agendamento.agendamento.model.StatusAgendamento;
 import com.agendamento.agendamento.repository.AgendamentoRepository;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -102,6 +104,22 @@ public class AgendamentoService {
                 .collect(Collectors.toList());
     }
 
+    /** Lista apenas os intervalos ocupados; não expõe dados dos clientes a quem busca horários. */
+    @Transactional(readOnly = true)
+    public List<HorarioOcupadoResponse> listarHorariosOcupados(Long profissionalId, LocalDate de, LocalDate ate) {
+        if (ate.isBefore(de)) {
+            throw new IllegalArgumentException("A data final deve ser igual ou posterior à data inicial.");
+        }
+        if (ChronoUnit.DAYS.between(de, ate) > 62) {
+            throw new IllegalArgumentException("O período máximo é de 62 dias.");
+        }
+        return agendamentoRepository.findByProfissionalAndPeriodo(
+                        profissionalId, de.atStartOfDay(), ate.atTime(LocalTime.MAX)).stream()
+                .filter(a -> a.getStatus() == StatusAgendamento.AGENDADO)
+                .map(a -> new HorarioOcupadoResponse(a.getDataHoraInicio(), a.getDataHoraFim()))
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     public List<AgendamentoResponse> listarPorProfissional(Long profissionalId) {
         return agendamentoRepository.findByProfissionalIdOrderByDataHoraInicioAsc(profissionalId).stream()
@@ -130,7 +148,7 @@ public class AgendamentoService {
     @Transactional
     public AgendamentoResponse cancelarPeloProfissional(Long profissionalId, Long id) {
         Agendamento agendamento = doProfissional(profissionalId, id);
-        agendamento.cancelarPeloProfissional();
+        agendamento.cancelarPeloProfissional(LocalDateTime.now());
         return toDTO(agendamentoRepository.save(agendamento));
     }
 

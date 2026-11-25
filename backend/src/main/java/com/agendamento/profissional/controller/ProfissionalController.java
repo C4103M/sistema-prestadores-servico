@@ -15,6 +15,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,6 +25,7 @@ import java.util.List;
  * UC: Manter serviço, Manter disponibilidade, Atualizar status do agendamento,
  * Cancelar agendamento e Ver dashboard.
  */
+@PreAuthorize("#profissionalId == principal.perfilId")
 @RestController
 @RequestMapping("/api/profissional/{profissionalId}")
 @RequiredArgsConstructor

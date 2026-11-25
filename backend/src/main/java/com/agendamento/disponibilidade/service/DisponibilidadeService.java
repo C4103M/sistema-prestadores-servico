@@ -86,7 +86,7 @@ public class DisponibilidadeService {
     // Regra: fim depois do início e sem sobreposição com outra faixa do mesmo dia
     private void validar(DisponibilidadeDTO dto, Long idIgnorado) {
         if (!dto.getHoraFim().isAfter(dto.getHoraInicio())) {
-            throw new IllegalArgumentException("A hora de fim deve ser posterior à hora de início.");
+            throw new IllegalArgumentException("O fim precisa ser depois do início.");
         }
 
         boolean sobreposta = disponibilidadeRepository
@@ -96,7 +96,7 @@ public class DisponibilidadeService {
                         && dto.getHoraFim().isAfter(d.getHoraInicio()));
 
         if (sobreposta) {
-            throw new IllegalStateException("A faixa se sobrepõe a outra faixa do mesmo dia.");
+            throw new IllegalStateException("Essa faixa se sobrepõe a outra do mesmo dia.");
         }
     }
 

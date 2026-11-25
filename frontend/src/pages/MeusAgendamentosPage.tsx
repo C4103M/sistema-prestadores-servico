@@ -7,18 +7,18 @@ import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { dataCurta, hora, moeda } from '../services/formato';
 import { podeCancelar } from '../services/horarios';
-import { CLIENTE_LOGADO_ID } from '../services/mockData';
 
 interface MeusAgendamentosPageProps {
+  clienteId: number;
   agendamentos: Agendamento[];
-  onCancelar: (id: number) => void;
+  onCancelar: (id: number) => Promise<void>;
   onAgendar: () => void;
 }
 
-export function MeusAgendamentosPage({ agendamentos, onCancelar, onAgendar }: MeusAgendamentosPageProps) {
+export function MeusAgendamentosPage({ clienteId, agendamentos, onCancelar, onAgendar }: MeusAgendamentosPageProps) {
   const [cancelando, setCancelando] = useState<Agendamento | null>(null);
 
-  const meus = agendamentos.filter((a) => a.clienteId === CLIENTE_LOGADO_ID);
+  const meus = agendamentos.filter((a) => a.clienteId === clienteId);
   const agora = new Date();
   const proximos = meus
     .filter((a) => a.status === 'AGENDADO' && new Date(a.dataHoraFim) >= agora)
@@ -92,7 +92,7 @@ export function MeusAgendamentosPage({ agendamentos, onCancelar, onAgendar }: Me
         rotuloConfirmar="Cancelar agendamento"
         rotuloCancelar="Manter"
         perigo
-        onConfirmar={() => cancelando && onCancelar(cancelando.id)}
+        onConfirmar={() => cancelando ? onCancelar(cancelando.id) : undefined}
         onFechar={() => setCancelando(null)}
       >
         {cancelando && (

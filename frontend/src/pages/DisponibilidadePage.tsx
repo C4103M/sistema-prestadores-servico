@@ -4,12 +4,13 @@ import type { DiaSemana, Disponibilidade } from '../types';
 import { PageHeader } from '../components/PageHeader';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DIAS_SEMANA, deMinutos, faixasSobrepostas, paraMinutos } from '../services/horarios';
-import { PROFISSIONAL_LOGADO_ID } from '../services/mockData';
+import { ApiError } from '../services/api';
 
 interface DisponibilidadePageProps {
+  profissionalId: number;
   disponibilidades: Disponibilidade[];
-  onSalvar: (faixa: Disponibilidade) => void;
-  onExcluir: (id: number) => void;
+  onSalvar: (faixa: Disponibilidade) => Promise<void>;
+  onExcluir: (id: number) => Promise<void>;
 }
 
 // Régua da semana: 06:00 às 22:00
@@ -26,12 +27,12 @@ interface Edicao {
   horaFim: string;
 }
 
-export function DisponibilidadePage({ disponibilidades, onSalvar, onExcluir }: DisponibilidadePageProps) {
+export function DisponibilidadePage({ profissionalId, disponibilidades, onSalvar, onExcluir }: DisponibilidadePageProps) {
   const [edicao, setEdicao] = useState<Edicao | null>(null);
   const [erro, setErro] = useState('');
   const [removendo, setRemovendo] = useState<Disponibilidade | null>(null);
 
-  const minhas = disponibilidades.filter((d) => d.profissionalId === PROFISSIONAL_LOGADO_ID);
+  const minhas = disponibilidades.filter((d) => d.profissionalId === profissionalId);
   const doDia = (dia: DiaSemana) =>
     minhas.filter((d) => d.diaSemana === dia).sort((a, b) => paraMinutos(a.horaInicio) - paraMinutos(b.horaInicio));
 
@@ -48,7 +49,7 @@ export function DisponibilidadePage({ disponibilidades, onSalvar, onExcluir }: D
     setEdicao({ dia, horaInicio: deMinutos(inicio), horaFim: deMinutos(Math.min(inicio + 3 * 60, REGUA_FIM)) });
   };
 
-  const salvar = (e: FormEvent) => {
+  const salvar = async (e: FormEvent) => {
     e.preventDefault();
     if (!edicao) return;
     if (paraMinutos(edicao.horaFim) <= paraMinutos(edicao.horaInicio)) {
@@ -57,7 +58,7 @@ export function DisponibilidadePage({ disponibilidades, onSalvar, onExcluir }: D
     }
     const nova = {
       id: edicao.id ?? Date.now(),
-      profissionalId: PROFISSIONAL_LOGADO_ID,
+      profissionalId,
       diaSemana: edicao.dia,
       horaInicio: edicao.horaInicio,
       horaFim: edicao.horaFim,
@@ -66,8 +67,27 @@ export function DisponibilidadePage({ disponibilidades, onSalvar, onExcluir }: D
       setErro('Essa faixa se sobrepõe a outra do mesmo dia.');
       return;
     }
-    onSalvar(nova);
-    setEdicao(null);
+    try {
+      await onSalvar(nova);
+      setEdicao(null);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setErro(err.message);
+      } else {
+        setErro('Não foi possível salvar a faixa de disponibilidade.');
+      }
+    }
+  };
+
+  const excluir = async () => {
+    if (!removendo) return;
+    try {
+      await onExcluir(removendo.id);
+      setRemovendo(null);
+    } catch (err) {
+      // O erro geral da API é exibido no AppShell; preservar o diálogo e permitir nova tentativa.
+      throw err;
+    }
   };
 
   return (
@@ -168,7 +188,7 @@ export function DisponibilidadePage({ disponibilidades, onSalvar, onExcluir }: D
         titulo="Remover esta faixa?"
         rotuloConfirmar="Remover"
         perigo
-        onConfirmar={() => removendo && onExcluir(removendo.id)}
+        onConfirmar={() => void excluir()}
         onFechar={() => setRemovendo(null)}
       >
         {removendo && (

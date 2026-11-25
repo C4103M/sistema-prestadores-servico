@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 public class ServicoDTO {
     private Long id;
 
-    @NotBlank(message = "O nome do serviço é obrigatório.")
+    @NotBlank(message = "Informe o nome do serviço.")
     private String nome;
 
     private String descricao;
@@ -22,11 +22,11 @@ public class ServicoDTO {
     private String categoria;
 
     @NotNull(message = "A duração em minutos é obrigatória.")
-    @Min(value = 5, message = "A duração mínima é de 5 minutos.")
+    @Min(value = 5, message = "A duração mínima é 5 minutos.")
     private Integer duracaoMinutos;
 
     @NotNull(message = "O preço é obrigatório.")
-    @DecimalMin(value = "0.00", message = "O preço não pode ser negativo.")
+    @DecimalMin(value = "0.00", message = "Informe um preço igual ou maior que zero.")
     private BigDecimal preco;
 
     private Boolean ativo;

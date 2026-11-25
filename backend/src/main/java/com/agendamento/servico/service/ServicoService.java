@@ -1,6 +1,7 @@
 package com.agendamento.servico.service;
 
 import com.agendamento.compartilhado.exceptions.RecursoNaoEncontradoException;
+import com.agendamento.agendamento.repository.AgendamentoRepository;
 import com.agendamento.profissional.model.Profissional;
 import com.agendamento.profissional.repository.ProfissionalRepository;
 import com.agendamento.servico.dto.ServicoDTO;
@@ -20,6 +21,7 @@ public class ServicoService {
 
     private final ServicoRepository servicoRepository;
     private final ProfissionalRepository profissionalRepository;
+    private final AgendamentoRepository agendamentoRepository;
 
     @Transactional(readOnly = true)
     public List<ServicoDTO> listarTodosAtivos() {
@@ -68,7 +70,7 @@ public class ServicoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Profissional não encontrado: " + dto.getProfissionalId()));
 
         Servico servico = Servico.builder()
-                .nome(dto.getNome())
+                .nome(dto.getNome().trim())
                 .descricao(dto.getDescricao())
                 .categoria(dto.getCategoria())
                 .duracaoMinutos(dto.getDuracaoMinutos())
@@ -85,7 +87,32 @@ public class ServicoService {
         Servico servico = servicoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Serviço não encontrado: " + id));
 
-        servico.setNome(dto.getNome());
+        aplicarAtualizacao(servico, dto);
+
+        return toDTO(servicoRepository.save(servico));
+    }
+
+    @Transactional
+    public ServicoDTO atualizarComoAdmin(Long id, ServicoDTO dto) {
+        Servico servico = servicoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Serviço não encontrado: " + id));
+        if (dto.getProfissionalId() != null
+                && !dto.getProfissionalId().equals(servico.getProfissional().getId())
+                && agendamentoRepository.existsByServico_Id(id)) {
+            throw new IllegalStateException(
+                    "Não é possível trocar o profissional de um serviço com agendamentos vinculados.");
+        }
+        aplicarAtualizacao(servico, dto);
+        if (dto.getProfissionalId() != null && !dto.getProfissionalId().equals(servico.getProfissional().getId())) {
+            Profissional profissional = profissionalRepository.findById(dto.getProfissionalId())
+                    .orElseThrow(() -> new RecursoNaoEncontradoException("Profissional não encontrado: " + dto.getProfissionalId()));
+            servico.setProfissional(profissional);
+        }
+        return toDTO(servicoRepository.save(servico));
+    }
+
+    private void aplicarAtualizacao(Servico servico, ServicoDTO dto) {
+        servico.setNome(dto.getNome().trim());
         servico.setDescricao(dto.getDescricao());
         servico.setCategoria(dto.getCategoria());
         servico.setDuracaoMinutos(dto.getDuracaoMinutos());
@@ -94,7 +121,6 @@ public class ServicoService {
             servico.setAtivo(dto.getAtivo());
         }
 
-        return toDTO(servicoRepository.save(servico));
     }
 
     @Transactional
@@ -107,11 +133,12 @@ public class ServicoService {
 
     @Transactional
     public void excluir(Long id) {
-        if (!servicoRepository.existsById(id)) {
-            throw new RecursoNaoEncontradoException("Serviço não encontrado: " + id);
+        Servico servico = servicoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Serviço não encontrado: " + id));
+        if (agendamentoRepository.existsByServico_Id(id)) {
+            throw new IllegalStateException("Este serviço tem agendamentos e não pode ser excluído. Desative-o para removê-lo da busca dos clientes.");
         }
-        servicoRepository.deleteById(id);
-        servicoRepository.flush(); // dispara aqui a violação de FK de um serviço com agendamentos
+        servicoRepository.delete(servico);
     }
 
     public ServicoDTO toDTO(Servico s) {

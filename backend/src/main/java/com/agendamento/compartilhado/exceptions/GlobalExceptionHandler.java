@@ -20,6 +20,18 @@ public class GlobalExceptionHandler {
         return problema(HttpStatus.NOT_FOUND, "Recurso não encontrado", ex.getMessage());
     }
 
+    // US01 CT06: e-mail já usado em outra conta
+    @ExceptionHandler(EmailJaCadastradoException.class)
+    public ProblemDetail emailJaCadastrado(EmailJaCadastradoException ex) {
+        return problema(HttpStatus.CONFLICT, "E-mail já cadastrado", ex.getMessage());
+    }
+
+    // US01 CT08: login negado, sem dizer qual dos dois campos falhou
+    @ExceptionHandler(CredenciaisInvalidasException.class)
+    public ProblemDetail credenciaisInvalidas(CredenciaisInvalidasException ex) {
+        return problema(HttpStatus.UNAUTHORIZED, "Credenciais inválidas", ex.getMessage());
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail dadosInvalidos(IllegalArgumentException ex) {
         return problema(HttpStatus.BAD_REQUEST, "Dados inválidos", ex.getMessage());

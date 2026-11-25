@@ -2,19 +2,19 @@ import { useState } from 'react';
 import type { Agendamento, Area } from '../types';
 import { PageHeader } from '../components/PageHeader';
 import { dataCurta, hora, moeda } from '../services/formato';
-import { PROFISSIONAL_LOGADO_ID } from '../services/mockData';
 
 interface DashboardPageProps {
   agendamentos: Agendamento[];
+  profissionalId?: number;
   /** profissional: só os próprios atendimentos; admin: a plataforma inteira, agrupada por profissional */
   area: Extract<Area, 'profissional' | 'admin'>;
 }
 
 type Periodo = '30d' | 'mes';
 
-export function DashboardPage({ agendamentos, area }: DashboardPageProps) {
+export function DashboardPage({ agendamentos, area, profissionalId }: DashboardPageProps) {
   const admin = area === 'admin';
-  const doEscopo = (a: Agendamento) => admin || a.profissionalId === PROFISSIONAL_LOGADO_ID;
+  const doEscopo = (a: Agendamento) => admin || a.profissionalId === profissionalId;
   const [periodo, setPeriodo] = useState<Periodo>('30d');
 
   const agora = new Date();
@@ -34,15 +34,15 @@ export function DashboardPage({ agendamentos, area }: DashboardPageProps) {
   const faltas = doPeriodo.filter((a) => a.status === 'FALTOU').length;
   const cancelados = doPeriodo.filter((a) => a.status === 'CANCELADO').length;
   // RN04: só atendimentos concluídos entram no faturamento
-  const faturamento = concluidos.reduce((s, a) => s + a.preco, 0);
+  const faturamento = admin ? 0 : concluidos.reduce((s, a) => s + a.preco, 0);
   const comparecimento = concluidos.length + faltas > 0 ? concluidos.length / (concluidos.length + faltas) : null;
   const futuros = agendamentos.filter(
     (a) => doEscopo(a) && a.status === 'AGENDADO' && new Date(a.dataHoraInicio) > agora
   ).length;
 
-  const porServico = Object.values(
+  const porServico = admin ? [] : Object.values(
     concluidos.reduce<Record<string, { nome: string; total: number; qtd: number }>>((acc, a) => {
-      const chave = admin ? a.profissionalNome : a.servicoNome;
+      const chave = a.servicoNome;
       acc[chave] ??= { nome: chave, total: 0, qtd: 0 };
       acc[chave].total += a.preco;
       acc[chave].qtd += 1;
@@ -51,7 +51,9 @@ export function DashboardPage({ agendamentos, area }: DashboardPageProps) {
   ).sort((a, b) => b.total - a.total);
   const maior = Math.max(1, ...porServico.map((s) => s.total));
 
-  const recentes = [...concluidos].sort((a, b) => b.dataHoraInicio.localeCompare(a.dataHoraInicio)).slice(0, 8);
+  const recentes = admin
+    ? []
+    : [...concluidos].sort((a, b) => b.dataHoraInicio.localeCompare(a.dataHoraInicio)).slice(0, 8);
 
   const indicadores = [
     { rotulo: 'Atendimentos concluídos', valor: String(concluidos.length) },
@@ -66,7 +68,7 @@ export function DashboardPage({ agendamentos, area }: DashboardPageProps) {
         titulo={admin ? 'Dashboard da plataforma' : 'Dashboard'}
         descricao={
           admin
-            ? 'Faturamento e atendimentos de todos os profissionais.'
+            ? 'Indicadores operacionais gerais da plataforma.'
             : 'Faturamento dos atendimentos concluídos e como anda a sua agenda.'
         }
         acoes={
@@ -92,12 +94,14 @@ export function DashboardPage({ agendamentos, area }: DashboardPageProps) {
         }
       />
 
-      <section aria-label="Indicadores" className="painel grid overflow-hidden lg:grid-cols-[1.4fr_repeat(4,1fr)]">
-        <div className="bg-ink p-5 text-white">
-          <p className="text-sm font-semibold text-white/85">Faturamento</p>
-          <p className="tabular mt-1 text-3xl font-bold tracking-tight">{moeda(faturamento)}</p>
-          <p className="mt-1 text-xs text-white/85">Soma dos atendimentos concluídos</p>
-        </div>
+      <section aria-label="Indicadores" className={`painel grid overflow-hidden ${admin ? 'lg:grid-cols-4' : 'lg:grid-cols-[1.4fr_repeat(4,1fr)]'}`}>
+        {!admin && (
+          <div className="bg-ink p-5 text-white">
+            <p className="text-sm font-semibold text-white/85">Faturamento</p>
+            <p className="tabular mt-1 text-3xl font-bold tracking-tight">{moeda(faturamento)}</p>
+            <p className="mt-1 text-xs text-white/85">Soma dos atendimentos concluídos</p>
+          </div>
+        )}
         <dl className="contents">
           {indicadores.map((i) => (
             <div key={i.rotulo} className="border-t border-rule p-5 first-of-type:border-t-0 lg:border-t-0 lg:border-l lg:first-of-type:border-l-0">
@@ -109,7 +113,7 @@ export function DashboardPage({ agendamentos, area }: DashboardPageProps) {
         </dl>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      {!admin && <div className="grid gap-6 lg:grid-cols-2">
         <section aria-labelledby="titulo-por-servico" className="painel p-5">
           <h2 id="titulo-por-servico" className="text-lg font-bold">
             {admin ? 'Faturamento por profissional' : 'Faturamento por serviço'}
@@ -169,7 +173,7 @@ export function DashboardPage({ agendamentos, area }: DashboardPageProps) {
             </table>
           )}
         </section>
-      </div>
+      </div>}
     </div>
   );
 }

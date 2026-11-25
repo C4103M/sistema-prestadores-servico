@@ -2,8 +2,8 @@ package com.agendamento.cliente.controller;
 
 import com.agendamento.agendamento.dto.request.AgendamentoRequest;
 import com.agendamento.agendamento.dto.response.AgendamentoResponse;
+import com.agendamento.agendamento.dto.response.HorarioOcupadoResponse;
 import com.agendamento.agendamento.service.AgendamentoService;
-import com.agendamento.cliente.model.Cliente;
 import com.agendamento.disponibilidade.dto.DisponibilidadeDTO;
 import com.agendamento.disponibilidade.service.DisponibilidadeService;
 import com.agendamento.profissional.dto.response.ProfissionalResponse;
@@ -13,10 +13,13 @@ import com.agendamento.servico.service.ServicoService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -51,17 +54,34 @@ public class ClienteController {
         return disponibilidadeService.listarPorProfissional(profissionalId);
     }
 
+    /**
+     * Horários já ocupados do profissional no período (padrão: hoje até 14 dias à frente).
+     * Devolve só início e fim, sem identificar o cliente de cada agendamento.
+     */
+    @GetMapping("/profissionais/{profissionalId}/horarios-ocupados")
+    public List<HorarioOcupadoResponse> horariosOcupados(
+            @PathVariable Long profissionalId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate de,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ate) {
+        LocalDate inicio = de != null ? de : LocalDate.now();
+        LocalDate fim = ate != null ? ate : inicio.plusDays(14);
+        return agendamentoService.listarHorariosOcupados(profissionalId, inicio, fim);
+    }
+
+    @PreAuthorize("#clienteId == principal.perfilId")
     @GetMapping("/{clienteId}/agendamentos")
     public List<AgendamentoResponse> meusAgendamentos(@PathVariable Long clienteId) {
         return agendamentoService.listarPorCliente(clienteId);
     }
 
+    @PreAuthorize("#clienteId == principal.perfilId")
     @PostMapping("/{clienteId}/agendamentos")
     public ResponseEntity<AgendamentoResponse> agendar(@PathVariable Long clienteId,
                                                           @Valid @RequestBody AgendamentoRequest dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(agendamentoService.criar(clienteId, dto));
     }
 
+    @PreAuthorize("#clienteId == principal.perfilId")
     @PatchMapping("/{clienteId}/agendamentos/{id}/cancelar")
     public AgendamentoResponse cancelar(@PathVariable Long clienteId, @PathVariable Long id) {
         return agendamentoService.cancelarPeloCliente(clienteId, id);

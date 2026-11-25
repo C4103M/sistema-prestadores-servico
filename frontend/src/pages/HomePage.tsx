@@ -5,9 +5,11 @@ import { PageHeader } from '../components/PageHeader';
 import { EmptyState } from '../components/EmptyState';
 import { dataCurta, duracao, hora, moeda } from '../services/formato';
 import { faixasDoDia, horariosLivres, temConflito, type Horario } from '../services/horarios';
-import { CLIENTE_LOGADO_ID, mockClientes, mockProfissionais } from '../services/mockData';
+import { mockProfissionais } from '../services/mockData';
 
 interface HomePageProps {
+  clienteId: number;
+  clienteNome: string;
   servicos: Servico[];
   agendamentos: Agendamento[];
   disponibilidades: Disponibilidade[];
@@ -20,6 +22,8 @@ const normalizar = (s: string) =>
   s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export function HomePage({
+  clienteId,
+  clienteNome,
   servicos,
   agendamentos,
   disponibilidades,
@@ -96,7 +100,7 @@ export function HomePage({
   };
 
   const proximo = agendamentos
-    .filter((a) => a.clienteId === CLIENTE_LOGADO_ID && a.status === 'AGENDADO' && new Date(a.dataHoraInicio) > new Date())
+    .filter((a) => a.clienteId === clienteId && a.status === 'AGENDADO' && new Date(a.dataHoraInicio) > new Date())
     .sort((a, b) => a.dataHoraInicio.localeCompare(b.dataHoraInicio))[0];
 
   return (
@@ -235,6 +239,8 @@ export function HomePage({
             <PainelAgendamento
               key={selecionado.id}
               servico={selecionado}
+              clienteId={clienteId}
+              clienteNome={clienteNome}
               agendamentos={agendamentos}
               disponibilidades={disponibilidades}
               onFechar={() => setSelecionadoId(null)}
@@ -269,6 +275,8 @@ export function HomePage({
 
 interface PainelAgendamentoProps {
   servico: Servico;
+  clienteId: number;
+  clienteNome: string;
   agendamentos: Agendamento[];
   disponibilidades: Disponibilidade[];
   onFechar: () => void;
@@ -278,6 +286,8 @@ interface PainelAgendamentoProps {
 
 function PainelAgendamento({
   servico,
+  clienteId,
+  clienteNome,
   agendamentos,
   disponibilidades,
   onFechar,
@@ -321,11 +331,10 @@ function PainelAgendamento({
       setEscolhido(null);
       return;
     }
-    const cliente = mockClientes.find((c) => c.id === CLIENTE_LOGADO_ID)!;
     const novo: Agendamento = {
       id: Date.now(),
-      clienteId: cliente.id,
-      clienteNome: cliente.nome,
+      clienteId,
+      clienteNome,
       profissionalId: servico.profissionalId,
       profissionalNome: servico.profissionalNome,
       servicoId: servico.id,

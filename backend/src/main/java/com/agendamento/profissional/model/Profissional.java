@@ -27,6 +27,9 @@ public class Profissional {
 
     private String especialidade;
 
+    // US01: o cadastro do Profissional também coleta telefone (coluna anulável para não quebrar dados existentes)
+    private String telefone;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;

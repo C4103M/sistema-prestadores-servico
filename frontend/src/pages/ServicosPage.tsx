@@ -5,9 +5,10 @@ import { PageHeader } from '../components/PageHeader';
 import { EmptyState } from '../components/EmptyState';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { duracao, moeda } from '../services/formato';
-import { PROFISSIONAL_LOGADO_ID, mockProfissionais } from '../services/mockData';
+import { ApiError } from '../services/api';
 
 interface ServicosPageProps {
+  profissionalId?: number;
   servicos: Servico[];
   agendamentos: Agendamento[];
   profissionais?: Profissional[];
@@ -29,12 +30,13 @@ interface Formulario {
   preco: string;
 }
 
-const VAZIO: Formulario = { profissionalId: String(PROFISSIONAL_LOGADO_ID), nome: '', categoria: 'Barbearia', descricao: '', duracaoMinutos: '45', preco: '' };
+const VAZIO: Formulario = { profissionalId: '', nome: '', categoria: 'Barbearia', descricao: '', duracaoMinutos: '45', preco: '' };
 
 type Erros = Partial<Record<keyof Formulario, string>>;
 
-function validar(f: Formulario): Erros {
+function validar(f: Formulario, exigirProfissional = false): Erros {
   const erros: Erros = {};
+  if (exigirProfissional && !f.profissionalId) erros.profissionalId = 'Selecione o profissional.';
   if (!f.nome.trim()) erros.nome = 'Informe o nome do serviço.';
   const dur = Number(f.duracaoMinutos);
   if (!Number.isInteger(dur) || dur < 5) erros.duracaoMinutos = 'A duração mínima é 5 minutos.';
@@ -43,9 +45,9 @@ function validar(f: Formulario): Erros {
   return erros;
 }
 
-export function ServicosPage({ servicos, agendamentos, profissionais, onSalvar, onExcluir, onAlternarAtivo, area }: ServicosPageProps) {
+export function ServicosPage({ profissionalId, servicos, agendamentos, profissionais, onSalvar, onExcluir, onAlternarAtivo, area }: ServicosPageProps) {
   const admin = area === 'admin';
-  const listaProfissionais = profissionais ?? mockProfissionais;
+  const listaProfissionais = profissionais ?? [];
   const [filtroProf, setFiltroProf] = useState('todos');
   // null = formulário fechado; 'novo' = cadastro; número = edição
   const [editando, setEditando] = useState<'novo' | number | null>(null);
@@ -56,13 +58,13 @@ export function ServicosPage({ servicos, agendamentos, profissionais, onSalvar, 
 
   const meus = admin
     ? servicos.filter((s) => filtroProf === 'todos' || s.profissionalId === Number(filtroProf))
-    : servicos.filter((s) => s.profissionalId === PROFISSIONAL_LOGADO_ID);
+    : servicos.filter((s) => s.profissionalId === profissionalId);
 
   const abrirNovo = () => {
     setEditando('novo');
     setForm({
       ...VAZIO,
-      profissionalId: String(listaProfissionais[0]?.id ?? PROFISSIONAL_LOGADO_ID),
+      profissionalId: String(profissionalId ?? listaProfissionais[0]?.id ?? ''),
     });
     setErros({});
   };
@@ -82,7 +84,7 @@ export function ServicosPage({ servicos, agendamentos, profissionais, onSalvar, 
 
   const salvar = async (e: FormEvent) => {
     e.preventDefault();
-    const encontrados = validar(form);
+    const encontrados = validar(form, admin);
     setErros(encontrados);
     if (Object.keys(encontrados).length > 0) return;
 
@@ -102,8 +104,10 @@ export function ServicosPage({ servicos, agendamentos, profissionais, onSalvar, 
       });
       setAviso(existente ? `“${form.nome.trim()}” foi atualizado.` : `“${form.nome.trim()}” foi cadastrado.`);
       setEditando(null);
-    } catch {
-      // erro exibido no banner global
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 400 && err.campos) {
+        setErros((atuais) => ({ ...atuais, ...err.campos } as Erros));
+      }
     }
   };
 
@@ -210,7 +214,7 @@ export function ServicosPage({ servicos, agendamentos, profissionais, onSalvar, 
                             type="checkbox"
                             role="switch"
                             checked={s.ativo}
-                            onChange={() => onAlternarAtivo(s.id)}
+                            onChange={() => void onAlternarAtivo(s.id)}
                             className="peer sr-only"
                           />
                           <span
@@ -257,6 +261,7 @@ export function ServicosPage({ servicos, agendamentos, profissionais, onSalvar, 
                       <option key={p.id} value={p.id}>{p.nome}</option>
                     ))}
                   </select>
+                  {erro('profissionalId')}
                 </div>
               )}
               <div>
@@ -309,7 +314,14 @@ export function ServicosPage({ servicos, agendamentos, profissionais, onSalvar, 
           aberto
           titulo="Este serviço tem agendamentos"
           rotuloConfirmar={excluindo.ativo ? 'Desativar serviço' : 'Entendi'}
-          onConfirmar={() => excluindo.ativo && onAlternarAtivo(excluindo.id)}
+          onConfirmar={async () => {
+            if (!excluindo.ativo) {
+              setExcluindo(null);
+              return;
+            }
+            await onAlternarAtivo(excluindo.id);
+            setExcluindo(null);
+          }}
           onFechar={() => setExcluindo(null)}
         >
           <p>

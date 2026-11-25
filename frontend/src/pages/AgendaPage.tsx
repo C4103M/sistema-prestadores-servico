@@ -6,12 +6,12 @@ import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { dataLonga, hora, mesmoDia, moeda } from '../services/formato';
 import { deMinutos, faixasDoDia, paraMinutos } from '../services/horarios';
-import { PROFISSIONAL_LOGADO_ID } from '../services/mockData';
 
 interface AgendaPageProps {
+  profissionalId: number;
   agendamentos: Agendamento[];
   disponibilidades: Disponibilidade[];
-  onAtualizarStatus: (id: number, status: Exclude<StatusAgendamento, 'AGENDADO'>) => void;
+  onAtualizarStatus: (id: number, status: Exclude<StatusAgendamento, 'AGENDADO'>) => void | Promise<void>;
 }
 
 const PX_POR_HORA = 72;
@@ -23,7 +23,7 @@ const COR_BLOCO: Record<StatusAgendamento, string> = {
   FALTOU: 'border-faltou/25 bg-faltou-soft',
 };
 
-export function AgendaPage({ agendamentos, disponibilidades, onAtualizarStatus }: AgendaPageProps) {
+export function AgendaPage({ profissionalId, agendamentos, disponibilidades, onAtualizarStatus }: AgendaPageProps) {
   const [dia, setDia] = useState(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -44,9 +44,9 @@ export function AgendaPage({ agendamentos, disponibilidades, onAtualizarStatus }
   };
 
   const doDia = agendamentos
-    .filter((a) => a.profissionalId === PROFISSIONAL_LOGADO_ID && mesmoDia(new Date(a.dataHoraInicio), dia))
+    .filter((a) => a.profissionalId === profissionalId && mesmoDia(new Date(a.dataHoraInicio), dia))
     .sort((a, b) => a.dataHoraInicio.localeCompare(b.dataHoraInicio));
-  const faixas = faixasDoDia(disponibilidades, PROFISSIONAL_LOGADO_ID, dia);
+  const faixas = faixasDoDia(disponibilidades, profissionalId, dia);
 
   const minutosDe = (iso: string) => {
     const d = new Date(iso);
@@ -163,7 +163,7 @@ export function AgendaPage({ agendamentos, disponibilidades, onAtualizarStatus }
                           <button
                             type="button"
                             className="btn btn-primary btn-sm h-7"
-                            onClick={() => onAtualizarStatus(a.id, 'CONCLUIDO')}
+                            onClick={() => void onAtualizarStatus(a.id, 'CONCLUIDO')}
                           >
                             Concluir
                           </button>
@@ -172,7 +172,7 @@ export function AgendaPage({ agendamentos, disponibilidades, onAtualizarStatus }
                             className="btn btn-secondary btn-sm h-7"
                             disabled={!jaComecou}
                             title={jaComecou ? undefined : 'Disponível depois do horário de início'}
-                            onClick={() => onAtualizarStatus(a.id, 'FALTOU')}
+                            onClick={() => void onAtualizarStatus(a.id, 'FALTOU')}
                           >
                             Faltou
                           </button>
@@ -214,7 +214,7 @@ export function AgendaPage({ agendamentos, disponibilidades, onAtualizarStatus }
         rotuloConfirmar="Cancelar atendimento"
         rotuloCancelar="Manter"
         perigo
-        onConfirmar={() => cancelando && onAtualizarStatus(cancelando.id, 'CANCELADO')}
+        onConfirmar={() => cancelando ? onAtualizarStatus(cancelando.id, 'CANCELADO') : undefined}
         onFechar={() => setCancelando(null)}
       >
         {cancelando && (

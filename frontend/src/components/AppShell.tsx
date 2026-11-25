@@ -5,9 +5,11 @@ import {
   ChartColumn,
   Clock4,
   LayoutGrid,
+  LogOut,
   Search,
   Scissors,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import type { Area, Tela } from '../types';
 
 interface ItemNav {
@@ -34,11 +36,21 @@ export const NAV: Record<Area, ItemNav[]> = {
   ],
 };
 
-export const AREAS: Record<Area, { titulo: string; nome: string; detalhe: string; iniciais: string }> = {
-  cliente: { titulo: 'Área do cliente', nome: 'Lucas Pereira', detalhe: 'Cliente', iniciais: 'LP' },
-  profissional: { titulo: 'Área do profissional', nome: 'Carlos Silva', detalhe: 'Profissional · Barbearia', iniciais: 'CS' },
-  admin: { titulo: 'Administração', nome: 'Administrador', detalhe: 'Admin da plataforma', iniciais: 'AD' },
+// Título e perfil de cada área; nome e iniciais vêm da sessão
+export const AREAS: Record<Area, { titulo: string; detalhe: string }> = {
+  cliente: { titulo: 'Área do cliente', detalhe: 'Cliente' },
+  profissional: { titulo: 'Área do profissional', detalhe: 'Profissional' },
+  admin: { titulo: 'Administração', detalhe: 'Admin da plataforma' },
 };
+
+const iniciaisDe = (nome: string) =>
+  nome
+    .split(' ')
+    .filter(Boolean)
+    .map((parte) => parte[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 
 interface AppShellProps {
   area: Area;
@@ -59,7 +71,9 @@ function Marca() {
 }
 
 export function AppShell({ area, tela, onNavegar, children }: AppShellProps) {
-  const usuario = AREAS[area];
+  const { sessao, sair } = useAuth();
+  const area_ = AREAS[area];
+  const nome = sessao?.nome ?? area_.detalhe;
 
   const itens = NAV[area].map(({ tela: destino, rotulo, Icone }) => {
     const ativo = destino === tela;
@@ -85,21 +99,25 @@ export function AppShell({ area, tela, onNavegar, children }: AppShellProps) {
       <aside className="sticky top-0 hidden h-dvh flex-col gap-7 border-r border-rule bg-surface px-4 py-5 lg:flex">
         <Marca />
         <div>
-          <p className="mb-2 px-3 text-xs font-semibold text-muted">{usuario.titulo}</p>
+          <p className="mb-2 px-3 text-xs font-semibold text-muted">{area_.titulo}</p>
           <nav aria-label="Principal" className="flex flex-col gap-1">
             {itens}
           </nav>
         </div>
-        <div className="mt-auto">
+        <div className="mt-auto space-y-2">
           <div className="flex items-center gap-3 rounded-lg bg-paper p-3">
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink-soft text-xs font-bold text-ink">
-              {usuario.iniciais}
+              {iniciaisDe(nome)}
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{usuario.nome}</p>
-              <p className="truncate text-xs text-muted">{usuario.detalhe}</p>
+              <p className="truncate text-sm font-semibold">{nome}</p>
+              <p className="truncate text-xs text-muted">{area_.detalhe}</p>
             </div>
           </div>
+          <button type="button" className="btn btn-ghost btn-sm w-full justify-start" onClick={sair}>
+            <LogOut className="size-4" aria-hidden />
+            Sair
+          </button>
         </div>
       </aside>
 
@@ -107,7 +125,13 @@ export function AppShell({ area, tela, onNavegar, children }: AppShellProps) {
       <header className="sticky top-0 z-20 border-b border-rule bg-surface px-4 pt-3 pb-3 lg:hidden">
         <div className="flex items-center justify-between gap-3">
           <Marca />
-          <span className="text-xs font-semibold text-muted">{usuario.titulo}</span>
+          <div className="flex items-center gap-2">
+            <span className="max-w-32 truncate text-xs font-semibold text-muted">{nome}</span>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={sair} aria-label="Sair da conta">
+              <LogOut className="size-4" aria-hidden />
+              Sair
+            </button>
+          </div>
         </div>
         <nav aria-label="Principal" className="-mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
           {itens}

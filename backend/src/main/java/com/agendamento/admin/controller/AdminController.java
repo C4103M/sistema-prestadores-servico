@@ -54,7 +54,7 @@ public class AdminController {
 
     @PutMapping("/servicos/{id}")
     public ServicoDTO atualizarServico(@PathVariable Long id, @Valid @RequestBody ServicoDTO dto) {
-        return servicoService.atualizar(id, dto);
+        return servicoService.atualizarComoAdmin(id, dto);
     }
 
     @PatchMapping("/servicos/{id}/status")

@@ -17,6 +17,7 @@ build/
 application-local.properties
 
 # IDEs e SO
+.run/
 .idea/
 .vscode/
 *.iml

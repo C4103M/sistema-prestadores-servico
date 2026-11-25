@@ -1,27 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowRight, CalendarCheck2, RefreshCw } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import type { Area, HealthStatus, Tela } from '../types';
-
-const ENTRADAS: { area: Area; destino: Tela; titulo: string }[] = [
-  {
-    area: 'cliente',
-    destino: 'cliente/buscar',
-    titulo: 'Área do cliente',
-  },
-  {
-    area: 'profissional',
-    destino: 'profissional/agenda',
-    titulo: 'Área do profissional',
-  },
-  {
-    area: 'admin',
-    destino: 'admin/servicos',
-    titulo: 'Administração',
-  },
-];
+import { telaInicial } from '../services/sessao';
+import type { HealthStatus } from '../types';
 
 export function InicioPage() {
+  const { sessao, sair } = useAuth();
   const [saude, setSaude] = useState<HealthStatus | null>(null);
   const [erro, setErro] = useState(false);
   const [carregando, setCarregando] = useState(true);
@@ -95,24 +80,37 @@ export function InicioPage() {
         )}
       </div>
 
-      <ul className="painel mt-6 divide-y divide-rule overflow-hidden">
-        {ENTRADAS.map((e) => (
-          <li key={e.area}>
-            <a
-              href={`#/${e.destino}`}
-              className="group flex items-center gap-5 p-5 transition-colors duration-150 hover:bg-paper sm:p-6"
-            >
-              <div className="min-w-0 flex-1">
-                <h2 className="text-lg font-bold">{e.titulo}</h2>
-              </div>
-              <ArrowRight
-                className="size-5 shrink-0 text-faint transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-marker"
-                aria-hidden
-              />
-            </a>
-          </li>
-        ))}
-      </ul>
+      {sessao ? (
+        <div className="painel mt-6 divide-y divide-rule overflow-hidden">
+          <a
+            href={`#/${telaInicial(sessao.papel)}`}
+            className="group flex items-center gap-5 p-5 transition-colors duration-150 hover:bg-paper sm:p-6"
+          >
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg font-bold">Continuar como {sessao.nome}</h2>
+              <p className="mt-0.5 text-sm text-muted">Ir para a sua área</p>
+            </div>
+            <ArrowRight
+              className="size-5 shrink-0 text-faint transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-marker"
+              aria-hidden
+            />
+          </a>
+          <div className="p-3 sm:px-6">
+            <button type="button" className="btn btn-ghost btn-sm -ml-3" onClick={sair}>
+              Sair da conta
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="painel mt-6 flex flex-col gap-3 p-5 sm:flex-row sm:p-6">
+          <a href="#/login" className="btn btn-primary sm:flex-1">
+            Entrar
+          </a>
+          <a href="#/cadastro" className="btn btn-secondary sm:flex-1">
+            Criar conta
+          </a>
+        </div>
+      )}
     </div>
   );
 }
