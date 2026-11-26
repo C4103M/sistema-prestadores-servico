@@ -287,7 +287,7 @@ class ServicoIntegrationTest {
     private Sessao cadastrarProfissional(String nome) throws Exception {
         String email = email(nome);
         String corpo = """
-                {"nome":"%s","email":"%s","telefone":"11912345678","senha":"%s","especialidade":"Outros"}
+                {"nome":"%s","email":"%s","telefone":"11912345678","senha":"%s"}
                 """.formatted(nome, email, SENHA);
         MvcResult result = mvc.perform(post("/api/auth/cadastro/profissional")
                         .contentType(MediaType.APPLICATION_JSON).content(corpo))

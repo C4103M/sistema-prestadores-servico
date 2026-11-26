@@ -3,6 +3,9 @@ package com.agendamento.agendamento;
 import com.agendamento.agendamento.model.Agendamento;
 import com.agendamento.agendamento.model.StatusAgendamento;
 import com.agendamento.agendamento.repository.AgendamentoRepository;
+import com.agendamento.categoria.model.Categoria;
+import com.agendamento.categoria.model.StatusCategoria;
+import com.agendamento.categoria.repository.CategoriaRepository;
 import com.agendamento.cliente.model.Cliente;
 import com.agendamento.cliente.repository.ClienteRepository;
 import com.agendamento.profissional.model.Profissional;
@@ -46,6 +49,7 @@ class AgendaStatusIntegrationTest {
     @Autowired private ProfissionalRepository profissionalRepository;
     @Autowired private ClienteRepository clienteRepository;
     @Autowired private ServicoRepository servicoRepository;
+    @Autowired private CategoriaRepository categoriaRepository;
     @Autowired private AgendamentoRepository agendamentoRepository;
 
     @Test
@@ -165,7 +169,7 @@ class AgendaStatusIntegrationTest {
 
     private Sessao cadastrarProfissional(String nome) throws Exception {
         String json = """
-                {"nome":"%s","email":"%s","telefone":"11912345678","senha":"%s","especialidade":"Geral"}
+                {"nome":"%s","email":"%s","telefone":"11912345678","senha":"%s"}
                 """.formatted(nome, email(), SENHA);
         MvcResult result = mvc.perform(post("/api/auth/cadastro/profissional")
                         .contentType(MediaType.APPLICATION_JSON).content(json))
@@ -186,8 +190,12 @@ class AgendaStatusIntegrationTest {
     private Long salvarAgendamento(Long clienteId, Long proId, LocalDateTime inicio, StatusAgendamento status, String preco) {
         Cliente cliente = clienteRepository.findById(clienteId).orElseThrow();
         Profissional pro = profissionalRepository.findById(proId).orElseThrow();
+        Categoria categoria = categoriaRepository.findByNomeIgnoreCase("Outros")
+                .orElseGet(() -> categoriaRepository.saveAndFlush(Categoria.builder()
+                        .nome("Outros").shortDescription("Geral").imagemUrl("/imagens/categorias/outros.jpg")
+                        .status(StatusCategoria.APROVADA).build()));
         Servico servico = servicoRepository.saveAndFlush(Servico.builder()
-                .nome("Serviço Teste").categoria("Geral").duracaoMinutos(45)
+                .nome("Serviço Teste").categoria(categoria).duracaoMinutos(45)
                 .preco(new BigDecimal(preco)).ativo(true).profissional(pro).build());
         return agendamentoRepository.saveAndFlush(Agendamento.builder()
                 .cliente(cliente).profissional(pro).servico(servico)

@@ -22,13 +22,12 @@ public interface ProfissionalRepository extends JpaRepository<Profissional, Long
     @Query("SELECT p FROM Profissional p WHERE p.id = :id")
     Optional<Profissional> findByIdForUpdate(@Param("id") Long id);
 
-    // Busca do cliente por profissional ativo: nome, especialidade ou categoria aprovada de serviço ativo
-    @Query("SELECT DISTINCT p FROM Profissional p WHERE p.usuario.ativo = true AND (" +
-           "LOWER(p.nome) LIKE LOWER(CONCAT('%', :termo, '%')) OR " +
-           "LOWER(COALESCE(p.especialidade, '')) LIKE LOWER(CONCAT('%', :termo, '%')) OR " +
+    // Busca do cliente por profissional ativo: nome ou categoria aprovada de serviço ativo
+    @Query("SELECT p FROM Profissional p JOIN FETCH p.usuario u WHERE u.ativo = true AND (" +
+           "LOWER(u.nome) LIKE LOWER(CONCAT('%', :termo, '%')) OR " +
            "EXISTS (SELECT s FROM Servico s WHERE s.profissional = p AND s.ativo = true " +
-           "AND s.categoriaEntidade.status = com.agendamento.categoria.model.StatusCategoria.APROVADA " +
-           "AND LOWER(s.categoriaEntidade.nome) LIKE LOWER(CONCAT('%', :termo, '%')))) " +
-           "ORDER BY p.nome")
+           "AND s.categoria.status = com.agendamento.categoria.model.StatusCategoria.APROVADA " +
+           "AND LOWER(s.categoria.nome) LIKE LOWER(CONCAT('%', :termo, '%')))) " +
+           "ORDER BY u.nome")
     List<Profissional> buscar(@Param("termo") String termo);
 }

@@ -27,6 +27,9 @@ public class Usuario {
     @Column(length = 120)
     private String nome;
 
+    @Column(length = 30)
+    private String telefone;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PapelUsuario papel;

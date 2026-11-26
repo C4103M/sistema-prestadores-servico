@@ -1,8 +1,7 @@
 package com.agendamento.autenticacao.service;
 
 import com.agendamento.autenticacao.dto.AuthResponse;
-import com.agendamento.autenticacao.dto.CadastroClienteRequest;
-import com.agendamento.autenticacao.dto.CadastroProfissionalRequest;
+import com.agendamento.autenticacao.dto.CadastroRequest;
 import com.agendamento.autenticacao.dto.LoginRequest;
 import com.agendamento.cliente.model.Cliente;
 import com.agendamento.cliente.repository.ClienteRepository;
@@ -49,37 +48,29 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse cadastrarCliente(CadastroClienteRequest dto) {
+    public AuthResponse cadastrarCliente(CadastroRequest dto) {
         String email = normalizar(dto.getEmail());
         garantirEmailLivre(email);
 
-        Usuario usuario = novoUsuario(email, dto.getSenha(), PapelUsuario.CLIENTE);
+        Usuario usuario = novoUsuario(dto.getNome().trim(), email, dto.getTelefone().trim(), dto.getSenha(), PapelUsuario.CLIENTE);
         Cliente cliente = clienteRepository.save(Cliente.builder()
-                .nome(dto.getNome().trim())
-                .telefone(dto.getTelefone().trim())
                 .usuario(usuario)
                 .build());
 
-        return resposta(usuario, cliente.getId(), cliente.getNome());
+        return resposta(usuario, cliente.getId(), usuario.getNome());
     }
 
     @Transactional
-    public AuthResponse cadastrarProfissional(CadastroProfissionalRequest dto) {
+    public AuthResponse cadastrarProfissional(CadastroRequest dto) {
         String email = normalizar(dto.getEmail());
         garantirEmailLivre(email);
 
-        String especialidade = dto.getEspecialidade() != null && !dto.getEspecialidade().isBlank()
-                ? dto.getEspecialidade().trim()
-                : null;
-        Usuario usuario = novoUsuario(email, dto.getSenha(), PapelUsuario.PROFISSIONAL);
+        Usuario usuario = novoUsuario(dto.getNome().trim(), email, dto.getTelefone().trim(), dto.getSenha(), PapelUsuario.PROFISSIONAL);
         Profissional profissional = profissionalRepository.save(Profissional.builder()
-                .nome(dto.getNome().trim())
-                .telefone(dto.getTelefone().trim())
-                .especialidade(especialidade)
                 .usuario(usuario)
                 .build());
 
-        return resposta(usuario, profissional.getId(), profissional.getNome());
+        return resposta(usuario, profissional.getId(), usuario.getNome());
     }
 
     @Transactional(readOnly = true)
@@ -112,12 +103,12 @@ public class AuthService {
             case CLIENTE -> {
                 Cliente c = clienteRepository.findByUsuarioId(usuario.getId())
                         .orElseThrow(() -> new RecursoNaoEncontradoException("Perfil de cliente não encontrado."));
-                yield resposta(usuario, c.getId(), c.getNome());
+                yield resposta(usuario, c.getId(), usuario.getNome());
             }
             case PROFISSIONAL -> {
                 Profissional p = profissionalRepository.findByUsuarioId(usuario.getId())
                         .orElseThrow(() -> new RecursoNaoEncontradoException("Perfil de profissional não encontrado."));
-                yield resposta(usuario, p.getId(), p.getNome());
+                yield resposta(usuario, p.getId(), usuario.getNome());
             }
             case ADMIN -> {
                 String nomeAdmin = (usuario.getNome() != null && !usuario.getNome().isBlank())
@@ -143,9 +134,11 @@ public class AuthService {
                 .build();
     }
 
-    private Usuario novoUsuario(String email, String senha, PapelUsuario papel) {
+    private Usuario novoUsuario(String nome, String email, String telefone, String senha, PapelUsuario papel) {
         return usuarioRepository.save(Usuario.builder()
+                .nome(nome)
                 .email(email)
+                .telefone(telefone)
                 .senha(passwordEncoder.encode(senha))
                 .papel(papel)
                 .build());

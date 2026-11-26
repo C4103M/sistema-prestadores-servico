@@ -135,17 +135,11 @@ public class CategoriaService {
     }
 
     @Transactional(readOnly = true)
-    public Categoria resolverParaServico(Long profissionalUsuarioId, Long categoriaId, String categoriaNomeFallback) {
-        Categoria categoria;
-        if (categoriaId != null) {
-            categoria = buscar(categoriaId);
-        } else if (categoriaNomeFallback != null && !categoriaNomeFallback.isBlank()) {
-            categoria = categoriaRepository.findByNomeIgnoreCase(categoriaNomeFallback.trim())
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Categoria não encontrada: " + categoriaNomeFallback.trim()));
-        } else {
+    public Categoria resolverParaServico(Long profissionalUsuarioId, Long categoriaId) {
+        if (categoriaId == null) {
             throw new IllegalArgumentException("Selecione uma categoria para o serviço.");
         }
+        Categoria categoria = buscar(categoriaId);
 
         if (categoria.getStatus() == StatusCategoria.APROVADA) {
             return categoria;

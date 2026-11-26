@@ -1,11 +1,11 @@
 package com.agendamento.admin.service;
 
 import com.agendamento.admin.dto.response.UsuarioAdminResponse;
-import com.agendamento.cliente.model.Cliente;
-import com.agendamento.cliente.repository.ClienteRepository;
 import com.agendamento.compartilhado.exceptions.RecursoNaoEncontradoException;
 import com.agendamento.profissional.model.Profissional;
 import com.agendamento.profissional.repository.ProfissionalRepository;
+import com.agendamento.servico.model.Servico;
+import com.agendamento.servico.repository.ServicoRepository;
 import com.agendamento.usuario.model.PapelUsuario;
 import com.agendamento.usuario.model.Usuario;
 import com.agendamento.usuario.repository.UsuarioRepository;
@@ -26,22 +26,27 @@ import java.util.stream.Collectors;
 public class AdminUsuarioService {
 
     private final UsuarioRepository usuarioRepository;
-    private final ClienteRepository clienteRepository;
     private final ProfissionalRepository profissionalRepository;
+    private final ServicoRepository servicoRepository;
 
     @Transactional(readOnly = true)
     public List<UsuarioAdminResponse> listarUsuarios(PapelUsuario papel, Boolean ativo, String busca) {
-        Map<Long, Cliente> clientesPorUsuario = clienteRepository.findAll().stream()
-                .collect(Collectors.toMap(c -> c.getUsuario().getId(), Function.identity(), (a, b) -> a));
         Map<Long, Profissional> profsPorUsuario = profissionalRepository.findAll().stream()
                 .collect(Collectors.toMap(p -> p.getUsuario().getId(), Function.identity(), (a, b) -> a));
+        Map<Long, List<Servico>> servicosPorProfissional = servicoRepository.findAll().stream()
+                .filter(s -> s.getProfissional() != null)
+                .collect(Collectors.groupingBy(s -> s.getProfissional().getId()));
 
         String termo = busca != null ? busca.trim().toLowerCase(Locale.ROOT) : "";
 
         return usuarioRepository.findAll().stream()
                 .filter(u -> papel == null || u.getPapel() == papel)
                 .filter(u -> ativo == null || Boolean.TRUE.equals(u.getAtivo()) == ativo)
-                .map(u -> toDTO(u, clientesPorUsuario.get(u.getId()), profsPorUsuario.get(u.getId())))
+                .map(u -> {
+                    Profissional pro = profsPorUsuario.get(u.getId());
+                    List<Servico> servicos = pro != null ? servicosPorProfissional.getOrDefault(pro.getId(), List.of()) : List.of();
+                    return toDTO(u, servicos);
+                })
                 .filter(dto -> termo.isEmpty()
                         || dto.getNome().toLowerCase(Locale.ROOT).contains(termo)
                         || dto.getEmail().toLowerCase(Locale.ROOT).contains(termo))
@@ -62,31 +67,36 @@ public class AdminUsuarioService {
         }
         usuario.setAtivo(!Boolean.TRUE.equals(usuario.getAtivo()));
         Usuario salvo = usuarioRepository.save(usuario);
-        Cliente cliente = clienteRepository.findByUsuarioId(salvo.getId()).orElse(null);
-        Profissional pro = profissionalRepository.findByUsuarioId(salvo.getId()).orElse(null);
-        return toDTO(salvo, cliente, pro);
+        List<Servico> servicos = salvo.getPapel() == PapelUsuario.PROFISSIONAL
+                ? profissionalRepository.findByUsuarioId(salvo.getId())
+                        .map(p -> servicoRepository.findByProfissionalId(p.getId()))
+                        .orElse(List.of())
+                : List.of();
+        return toDTO(salvo, servicos);
     }
 
-    private UsuarioAdminResponse toDTO(Usuario u, Cliente c, Profissional p) {
-        String nome;
-        String telefone = null;
+    private UsuarioAdminResponse toDTO(Usuario u, List<Servico> servicos) {
+        String nome = (u.getNome() != null && !u.getNome().isBlank())
+                ? u.getNome()
+                : (u.getPapel() == PapelUsuario.ADMIN ? "Administrador" : "");
+
         String especialidade = null;
-        if (u.getPapel() == PapelUsuario.CLIENTE && c != null) {
-            nome = c.getNome();
-            telefone = c.getTelefone();
-        } else if (u.getPapel() == PapelUsuario.PROFISSIONAL && p != null) {
-            nome = p.getNome();
-            telefone = p.getTelefone();
-            especialidade = p.getEspecialidade();
-        } else {
-            nome = (u.getNome() != null && !u.getNome().isBlank()) ? u.getNome() : "Administrador";
+        if (u.getPapel() == PapelUsuario.PROFISSIONAL) {
+            String categorias = servicos.stream()
+                    .filter(s -> Boolean.TRUE.equals(s.getAtivo()) && s.getCategoria() != null)
+                    .map(s -> s.getCategoria().getNome())
+                    .distinct()
+                    .collect(Collectors.joining(", "));
+            if (!categorias.isBlank()) {
+                especialidade = categorias;
+            }
         }
 
         return UsuarioAdminResponse.builder()
                 .id(u.getId())
                 .nome(nome)
                 .email(u.getEmail())
-                .telefone(telefone)
+                .telefone(u.getTelefone())
                 .especialidade(especialidade)
                 .papel(u.getPapel())
                 .ativo(Boolean.TRUE.equals(u.getAtivo()))

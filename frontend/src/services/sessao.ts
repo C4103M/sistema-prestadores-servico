@@ -27,10 +27,6 @@ export interface CadastroPayload {
   senha: string;
 }
 
-export interface CadastroProfissionalPayload extends CadastroPayload {
-  especialidade?: string;
-}
-
 // A chave do token é a mesma que o interceptor de services/api.ts já lê.
 const CHAVE_TOKEN = 'agendefacil_token';
 const CHAVE_SESSAO = 'agendefacil_sessao';

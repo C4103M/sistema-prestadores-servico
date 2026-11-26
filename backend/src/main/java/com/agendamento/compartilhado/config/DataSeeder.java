@@ -56,8 +56,7 @@ public class DataSeeder implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) {
         if (usuarioRepository.count() > 0) {
-            Map<String, Categoria> categorias = garantirCategoriasIniciais(null);
-            vincularServicosSemCategoria(categorias);
+            garantirCategoriasIniciais(null);
             return;
         }
 
@@ -76,11 +75,11 @@ public class DataSeeder implements ApplicationRunner {
         Categoria catEstetica = categorias.get("Estética");
         Categoria catEletrica = categorias.get("Elétrica");
 
-        Profissional carlos = criarProfissional("Carlos Silva", "Barbearia", "carlos@barbearia.com", senhaPadrao,
+        Profissional carlos = criarProfissional("Carlos Silva", "(11) 98765-4321", "carlos@barbearia.com", senhaPadrao,
                 "/imagens/categorias/barbearia.webp");
-        Profissional beatriz = criarProfissional("Beatriz Mendes", "Estética", "beatriz@estetica.com", senhaPadrao,
+        Profissional beatriz = criarProfissional("Beatriz Mendes", "(11) 97654-3210", "beatriz@estetica.com", senhaPadrao,
                 "/imagens/categorias/estetica.jpg");
-        Profissional marcos = criarProfissional("Marcos Andrade", "Elétrica residencial", "marcos@eletrica.com", senhaPadrao,
+        Profissional marcos = criarProfissional("Marcos Andrade", "(11) 96543-2109", "marcos@eletrica.com", senhaPadrao,
                 "/imagens/categorias/eletrica.jpg");
 
         Cliente lucas = criarCliente("Lucas Pereira", "(11) 91234-5678", "lucas@email.com", senhaPadrao);
@@ -177,33 +176,17 @@ public class DataSeeder implements ApplicationRunner {
                         .build()));
     }
 
-    private void vincularServicosSemCategoria(Map<String, Categoria> iniciais) {
-        List<Servico> semCategoria = servicoRepository.findByCategoriaEntidadeIsNull();
-        if (semCategoria.isEmpty()) {
-            return;
-        }
-        Categoria fallback = iniciais.get("Outros");
-        for (Servico s : semCategoria) {
-            Categoria alvo = s.getCategoria() != null
-                    ? categoriaRepository.findByNomeIgnoreCase(s.getCategoria().trim()).orElse(fallback)
-                    : fallback;
-            s.setCategoriaEntidade(alvo);
-            s.setCategoria(alvo.getNome());
-        }
-        servicoRepository.saveAll(semCategoria);
-    }
-
-    private Profissional criarProfissional(String nome, String especialidade, String email, String senhaHash,
+    private Profissional criarProfissional(String nome, String telefone, String email, String senhaHash,
                                            String bannerUrl) {
         Usuario u = usuarioRepository.save(Usuario.builder()
+                .nome(nome)
+                .telefone(telefone)
                 .email(email)
                 .senha(senhaHash)
                 .papel(PapelUsuario.PROFISSIONAL)
                 .ativo(true)
                 .build());
         return profissionalRepository.save(Profissional.builder()
-                .nome(nome)
-                .especialidade(especialidade)
                 .bannerUrl(bannerUrl)
                 .usuario(u)
                 .build());
@@ -211,14 +194,14 @@ public class DataSeeder implements ApplicationRunner {
 
     private Cliente criarCliente(String nome, String telefone, String email, String senhaHash) {
         Usuario u = usuarioRepository.save(Usuario.builder()
+                .nome(nome)
+                .telefone(telefone)
                 .email(email)
                 .senha(senhaHash)
                 .papel(PapelUsuario.CLIENTE)
                 .ativo(true)
                 .build());
         return clienteRepository.save(Cliente.builder()
-                .nome(nome)
-                .telefone(telefone)
                 .usuario(u)
                 .build());
     }
@@ -228,8 +211,7 @@ public class DataSeeder implements ApplicationRunner {
                 .profissional(prof)
                 .nome(nome)
                 .descricao(descricao)
-                .categoria(categoria.getNome())
-                .categoriaEntidade(categoria)
+                .categoria(categoria)
                 .duracaoMinutos(duracao)
                 .preco(new BigDecimal(preco))
                 .ativo(true)

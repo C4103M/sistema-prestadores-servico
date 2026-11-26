@@ -22,19 +22,11 @@ public class Profissional {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String nome;
-
-    private String especialidade;
-
-    // US01: o cadastro do Profissional também coleta telefone (coluna anulável para não quebrar dados existentes)
-    private String telefone;
-
     @Column(name = "banner_url", length = 500)
     private String bannerUrl;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_id", nullable = false)
+    @JoinColumn(name = "usuario_id", nullable = false, unique = true)
     private Usuario usuario;
 
     @OneToMany(mappedBy = "profissional", cascade = CascadeType.ALL, orphanRemoval = true)

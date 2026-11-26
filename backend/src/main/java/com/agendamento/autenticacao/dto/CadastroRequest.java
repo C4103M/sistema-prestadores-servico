@@ -10,7 +10,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class CadastroClienteRequest {
+public class CadastroRequest {
 
     @NotBlank(message = "Informe o nome.")
     @Size(max = 120, message = "O nome deve ter no máximo 120 caracteres.")

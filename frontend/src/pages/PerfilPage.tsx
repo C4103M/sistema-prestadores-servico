@@ -9,7 +9,7 @@ import type { PapelUsuario } from '../types';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-type CampoPerfil = 'nome' | 'email' | 'telefone' | 'especialidade' | 'bannerUrl';
+type CampoPerfil = 'nome' | 'email' | 'telefone' | 'bannerUrl';
 type CampoSenha = 'senhaAtual' | 'novaSenha' | 'confirmarNovaSenha';
 
 export function PerfilPage() {
@@ -18,7 +18,6 @@ export function PerfilPage() {
   const [nome, setNome] = useState(sessao?.nome ?? '');
   const [email, setEmail] = useState(sessao?.email ?? '');
   const [telefone, setTelefone] = useState('');
-  const [especialidade, setEspecialidade] = useState('');
   const [bannerUrl, setBannerUrl] = useState('');
   const [carregando, setCarregando] = useState(true);
   const [erroCarga, setErroCarga] = useState('');
@@ -43,7 +42,6 @@ export function PerfilPage() {
       setNome(p.nome);
       setEmail(p.email);
       setTelefone(p.telefone ?? '');
-      setEspecialidade(p.especialidade ?? '');
       setBannerUrl(p.bannerUrl ?? '');
     } catch (err) {
       setErroCarga(
@@ -74,7 +72,6 @@ export function PerfilPage() {
         nome: nome.trim(),
         email: email.trim(),
         telefone: papel === 'ADMIN' ? undefined : telefone.trim(),
-        especialidade: papel === 'PROFISSIONAL' ? especialidade.trim() : undefined,
         bannerUrl: papel === 'PROFISSIONAL' ? bannerUrl.trim() : undefined,
       });
       atualizarSessao(auth);
@@ -207,32 +204,16 @@ export function PerfilPage() {
             )}
 
             {papel === 'PROFISSIONAL' && (
-              <>
-                <div>
-                  <label className="label" htmlFor="perfil-especialidade">
-                    Especialidade <span className="font-normal text-muted">(opcional)</span>
-                  </label>
-                  <input
-                    id="perfil-especialidade"
-                    className="input"
-                    maxLength={120}
-                    placeholder="Ex.: Barbearia, Estética, Elétrica residencial"
-                    value={especialidade}
-                    onChange={(e) => setEspecialidade(e.target.value)}
-                  />
-                </div>
-
-                <CampoImagemCategoria
-                  idPrefixo="perfil-banner"
-                  valor={bannerUrl}
-                  erro={errosPerfil.bannerUrl}
-                  onChange={setBannerUrl}
-                  rotulo="Banner do seu serviço (opcional)"
-                  placeholder="Ou informe a URL da imagem do seu banner"
-                  textoAlt="Pré-visualização do banner do profissional"
-                  permitirRemover
-                />
-              </>
+              <CampoImagemCategoria
+                idPrefixo="perfil-banner"
+                valor={bannerUrl}
+                erro={errosPerfil.bannerUrl}
+                onChange={setBannerUrl}
+                rotulo="Banner do seu serviço (opcional)"
+                placeholder="Ou informe a URL da imagem do seu banner"
+                textoAlt="Pré-visualização do banner do profissional"
+                permitirRemover
+              />
             )}
 
             {errosPerfil.geral && (

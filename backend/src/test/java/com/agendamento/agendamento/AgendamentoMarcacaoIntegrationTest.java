@@ -271,8 +271,8 @@ class AgendamentoMarcacaoIntegrationTest {
 
     private Sessao cadastrarProfissional(String nome, String especialidade) throws Exception {
         String json = """
-                {"nome":"%s","email":"%s","telefone":"11912345678","senha":"%s","especialidade":"%s"}
-                """.formatted(nome, email(), SENHA, especialidade);
+                {"nome":"%s","email":"%s","telefone":"11912345678","senha":"%s"}
+                """.formatted(nome, email(), SENHA);
         MvcResult result = mvc.perform(post("/api/auth/cadastro/profissional")
                         .contentType(MediaType.APPLICATION_JSON).content(json))
                 .andExpect(status().isCreated()).andReturn();
@@ -299,7 +299,7 @@ class AgendamentoMarcacaoIntegrationTest {
                         .status(StatusCategoria.APROVADA)
                         .build()));
         return servicoRepository.saveAndFlush(Servico.builder()
-                .nome(nome).categoria(cat.getNome()).categoriaEntidade(cat).descricao("Descrição")
+                .nome(nome).categoria(cat).descricao("Descrição")
                 .duracaoMinutos(duracao).preco(new BigDecimal(preco))
                 .ativo(ativo).profissional(pro).build());
     }

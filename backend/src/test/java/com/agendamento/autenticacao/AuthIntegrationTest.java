@@ -40,10 +40,10 @@ class AuthIntegrationTest {
                 """.formatted(nome, email);
     }
 
-    private static String jsonProfissional(String nome, String email, String especialidade) {
+    private static String jsonProfissional(String nome, String email) {
         return """
-                {"nome":"%s","email":"%s","telefone":"(11) 91234-5678","senha":"123456","especialidade":"%s"}
-                """.formatted(nome, email, especialidade);
+                {"nome":"%s","email":"%s","telefone":"(11) 91234-5678","senha":"123456"}
+                """.formatted(nome, email);
     }
 
     private static String jsonLogin(String email, String senha) {
@@ -71,9 +71,9 @@ class AuthIntegrationTest {
     }
 
     @Test
-    @DisplayName("CT02: cadastra Profissional com especialidade e devolve papel PROFISSIONAL")
+    @DisplayName("CT02: cadastra Profissional e devolve papel PROFISSIONAL")
     void ct02_cadastroProfissional() throws Exception {
-        postJson("/api/auth/cadastro/profissional", jsonProfissional("Carlos Silva", emailUnico("carlos"), "Barbearia"))
+        postJson("/api/auth/cadastro/profissional", jsonProfissional("Carlos Silva", emailUnico("carlos")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.token", not(emptyOrNullString())))
                 .andExpect(jsonPath("$.papel").value("PROFISSIONAL"));
@@ -98,7 +98,7 @@ class AuthIntegrationTest {
     @Test
     @DisplayName("CT05: Profissional pode se cadastrar sem informar especialidade")
     void ct05_profissionalSemEspecialidade() throws Exception {
-        postJson("/api/auth/cadastro/profissional", jsonProfissional("Marcos Andrade", emailUnico("marcos"), ""))
+        postJson("/api/auth/cadastro/profissional", jsonProfissional("Marcos Andrade", emailUnico("marcos")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.token", not(emptyOrNullString())))
                 .andExpect(jsonPath("$.papel").value("PROFISSIONAL"));
@@ -119,7 +119,7 @@ class AuthIntegrationTest {
     @DisplayName("CT07: login válido devolve token e papel para redirecionar")
     void ct07_loginValido() throws Exception {
         String email = emailUnico("login");
-        postJson("/api/auth/cadastro/profissional", jsonProfissional("Beatriz Mendes", email, "Estética"))
+        postJson("/api/auth/cadastro/profissional", jsonProfissional("Beatriz Mendes", email))
                 .andExpect(status().isCreated());
 
         postJson("/api/auth/login", jsonLogin(email, "123456"))

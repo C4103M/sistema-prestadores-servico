@@ -46,7 +46,6 @@ export interface PerfilUsuario {
   nome: string;
   email: string;
   telefone: string | null;
-  especialidade: string | null;
   bannerUrl?: string | null;
 }
 
@@ -58,13 +57,6 @@ export interface Profissional {
   email?: string;
   telefone?: string;
   servicos?: Servico[];
-}
-
-export interface Cliente {
-  id: number;
-  nome: string;
-  email: string;
-  telefone: string;
 }
 
 export interface Servico {

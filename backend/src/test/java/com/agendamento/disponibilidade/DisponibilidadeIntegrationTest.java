@@ -136,7 +136,7 @@ class DisponibilidadeIntegrationTest {
         Cliente entidadeCliente = clienteRepository.findById(cliente.perfilId).orElseThrow();
         Categoria cat = categoriaAprovada();
         Servico servico = servicoRepository.saveAndFlush(Servico.builder().nome("Serviço")
-                .categoria(cat.getNome()).categoriaEntidade(cat).duracaoMinutos(30).preco(new BigDecimal("40.00"))
+                .categoria(cat).duracaoMinutos(30).preco(new BigDecimal("40.00"))
                 .ativo(true).profissional(profissional).build());
         LocalDateTime inicio = proximaSexta.atTime(14, 0);
         Agendamento agendamento = agendamentoRepository.saveAndFlush(Agendamento.builder()
@@ -159,7 +159,7 @@ class DisponibilidadeIntegrationTest {
         Profissional profissional = profissionalRepository.findById(pro.perfilId).orElseThrow();
         Categoria cat = categoriaAprovada();
         Servico servico = servicoRepository.saveAndFlush(Servico.builder().nome("Serviço")
-                .categoria(cat.getNome()).categoriaEntidade(cat).duracaoMinutos(30).preco(new BigDecimal("40.00"))
+                .categoria(cat).duracaoMinutos(30).preco(new BigDecimal("40.00"))
                 .ativo(true).profissional(profissional).build());
         LocalDate proximaSegunda = LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.MONDAY));
         String corpo = """
@@ -178,7 +178,7 @@ class DisponibilidadeIntegrationTest {
         String nome = "Profissional Teste";
         String email = email();
         String json = """
-                {"nome":"%s","email":"%s","telefone":"11912345678","senha":"%s","especialidade":"Geral"}
+                {"nome":"%s","email":"%s","telefone":"11912345678","senha":"%s"}
                 """.formatted(nome, email, SENHA);
         MvcResult result = mvc.perform(post("/api/auth/cadastro/profissional")
                         .contentType(MediaType.APPLICATION_JSON).content(json))

@@ -1,6 +1,5 @@
 package com.agendamento.profissional.service;
 
-import com.agendamento.compartilhado.exceptions.RecursoNaoEncontradoException;
 import com.agendamento.profissional.dto.response.ProfissionalResponse;
 import com.agendamento.profissional.model.Profissional;
 import com.agendamento.profissional.repository.ProfissionalRepository;
@@ -23,7 +22,7 @@ public class ProfissionalService {
     private final ServicoRepository servicoRepository;
     private final ServicoService servicoService;
 
-    // Busca do cliente por profissional (nome, especialidade ou categoria); só lista quem tem usuário ativo e serviço público
+    // Busca do cliente por profissional (nome ou categoria); só lista quem tem usuário ativo e serviço público
     @Transactional(readOnly = true)
     public List<ProfissionalResponse> pesquisar(String termo) {
         List<Profissional> encontrados = (termo == null || termo.isBlank())
@@ -35,32 +34,18 @@ public class ProfissionalService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
-    public List<ProfissionalResponse> listarTodos() {
-        return profissionalRepository.findAll().stream().map(this::toDTO).toList();
-    }
-
-    @Transactional(readOnly = true)
-    public Profissional buscarEntidade(Long id) {
-        return profissionalRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Profissional não encontrado: " + id));
-    }
-
     private ProfissionalResponse toDTO(Profissional p) {
         List<ServicoDTO> servicosPublicos = servicoRepository.findPublicosAtivosByProfissionalId(p.getId()).stream()
                 .map(servicoService::toDTO)
                 .toList();
-        String especialidadeExibida = p.getEspecialidade();
-        if (especialidadeExibida == null || especialidadeExibida.isBlank()) {
-            especialidadeExibida = servicosPublicos.stream()
-                    .map(ServicoDTO::getCategoria)
-                    .filter(c -> c != null && !c.isBlank())
-                    .distinct()
-                    .collect(Collectors.joining(", "));
-        }
+        String especialidadeExibida = servicosPublicos.stream()
+                .map(ServicoDTO::getCategoria)
+                .filter(c -> c != null && !c.isBlank())
+                .distinct()
+                .collect(Collectors.joining(", "));
         return ProfissionalResponse.builder()
                 .id(p.getId())
-                .nome(p.getNome())
+                .nome(p.getUsuario().getNome())
                 .especialidade(especialidadeExibida)
                 .bannerUrl(p.getBannerUrl())
                 .servicos(servicosPublicos)

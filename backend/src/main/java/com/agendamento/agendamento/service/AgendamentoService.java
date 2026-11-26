@@ -24,7 +24,6 @@ import java.util.Comparator;
 import java.time.LocalTime;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,8 +57,8 @@ public class AgendamentoService {
         if (!servico.getProfissional().getId().equals(profissional.getId())
                 || !Boolean.TRUE.equals(servico.getAtivo())
                 || !Boolean.TRUE.equals(profissional.getUsuario().getAtivo())
-                || servico.getCategoriaEntidade() == null
-                || servico.getCategoriaEntidade().getStatus() != StatusCategoria.APROVADA) {
+                || servico.getCategoria() == null
+                || servico.getCategoria().getStatus() != StatusCategoria.APROVADA) {
             throw new IllegalArgumentException("O serviço escolhido não é oferecido ou ainda não está disponível.");
         }
 
@@ -132,13 +131,6 @@ public class AgendamentoService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
-    public List<AgendamentoResponse> listarTodos() {
-        return agendamentoRepository.findAll(Sort.by(Sort.Direction.DESC, "dataHoraInicio")).stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
-    }
-
     // Cliente cancela só os próprios agendamentos e com 2h de antecedência (RN03)
     @Transactional
     public AgendamentoResponse cancelarPeloCliente(Long clienteId, Long id) {
@@ -174,11 +166,6 @@ public class AgendamentoService {
     }
 
     @Transactional(readOnly = true)
-    public DashboardResponse obterDashboard(Long profissionalId) {
-        return obterDashboard(profissionalId, null, null);
-    }
-
-    @Transactional(readOnly = true)
     public DashboardResponse obterDashboard(Long profissionalId, LocalDate de, LocalDate ate) {
         validarPeriodo(de, ate);
         List<Agendamento> lista = (de == null && ate == null)
@@ -197,11 +184,6 @@ public class AgendamentoService {
 
     // Dashboard do Admin: todos os profissionais
     @Transactional(readOnly = true)
-    public AdminDashboardResponse obterDashboardGeral(long profissionais, long servicosAtivos) {
-        return obterDashboardGeral(profissionais, servicosAtivos, null, null);
-    }
-
-    @Transactional(readOnly = true)
     public AdminDashboardResponse obterDashboardGeral(long profissionais, long servicosAtivos, LocalDate de, LocalDate ate) {
         validarPeriodo(de, ate);
         List<Agendamento> todos = (de == null && ate == null)
@@ -216,7 +198,7 @@ public class AgendamentoService {
                     List<Agendamento> grupo = e.getValue();
                     return AdminDashboardResponse.FaturamentoProfissional.builder()
                             .profissionalId(e.getKey())
-                            .profissionalNome(grupo.get(0).getProfissional().getNome())
+                            .profissionalNome(grupo.get(0).getProfissional().getUsuario().getNome())
                             .concluidos(contar(grupo, StatusAgendamento.CONCLUIDO))
                             .faltas(contar(grupo, StatusAgendamento.FALTOU))
                             .faturamento(faturamento(grupo))
@@ -289,9 +271,9 @@ public class AgendamentoService {
                 .limit(8)
                 .map(a -> DashboardResponse.AtendimentoRecente.builder()
                         .id(a.getId())
-                        .clienteNome(a.getCliente().getNome())
+                        .clienteNome(a.getCliente().getUsuario().getNome())
                         .servicoNome(a.getServico().getNome())
-                        .profissionalNome(a.getProfissional().getNome())
+                        .profissionalNome(a.getProfissional().getUsuario().getNome())
                         .dataHoraInicio(a.getDataHoraInicio())
                         .preco(a.getPreco())
                         .build())
@@ -341,9 +323,9 @@ public class AgendamentoService {
         return AgendamentoResponse.builder()
                 .id(a.getId())
                 .clienteId(a.getCliente().getId())
-                .clienteNome(a.getCliente().getNome())
+                .clienteNome(a.getCliente().getUsuario().getNome())
                 .profissionalId(a.getProfissional().getId())
-                .profissionalNome(a.getProfissional().getNome())
+                .profissionalNome(a.getProfissional().getUsuario().getNome())
                 .servicoId(a.getServico().getId())
                 .servicoNome(a.getServico().getNome())
                 .dataHoraInicio(a.getDataHoraInicio())

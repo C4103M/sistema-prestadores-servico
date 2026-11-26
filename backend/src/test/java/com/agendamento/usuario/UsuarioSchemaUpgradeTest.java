@@ -47,10 +47,11 @@ class UsuarioSchemaUpgradeTest {
         try (SessionFactory ignored = configuration.buildSessionFactory();
              Connection conn = DriverManager.getConnection(JDBC_URL, "sa", "");
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT ativo, nome FROM usuarios WHERE email = 'legado@agendefacil.com'")) {
+             ResultSet rs = stmt.executeQuery("SELECT ativo, nome, telefone FROM usuarios WHERE email = 'legado@agendefacil.com'")) {
             assertTrue(rs.next(), "O usuário pré-existente deve permanecer na tabela após o upgrade do schema.");
             assertTrue(rs.getBoolean("ativo"), "A coluna ativo deve ser preenchida automaticamente com true.");
             assertNull(rs.getString("nome"), "A coluna opcional nome deve permanecer nula quando não existia antes.");
+            assertNull(rs.getString("telefone"), "A coluna opcional telefone deve permanecer nula quando não existia antes.");
         } finally {
             try (Connection conn = DriverManager.getConnection(JDBC_URL, "sa", "");
                  Statement stmt = conn.createStatement()) {

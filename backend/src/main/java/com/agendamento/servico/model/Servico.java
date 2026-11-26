@@ -26,12 +26,9 @@ public class Servico {
     @Column(length = 1000)
     private String descricao;
 
-    // Nome da categoria sincronizado para consulta e compatibilidade
-    private String categoria;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "categoria_id")
-    private Categoria categoriaEntidade;
+    @JoinColumn(name = "categoria_id", nullable = false)
+    private Categoria categoria;
 
     @Column(name = "duracao_minutos", nullable = false)
     private Integer duracaoMinutos;

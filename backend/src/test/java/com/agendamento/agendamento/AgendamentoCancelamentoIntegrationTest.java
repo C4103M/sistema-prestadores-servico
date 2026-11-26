@@ -3,6 +3,9 @@ package com.agendamento.agendamento;
 import com.agendamento.agendamento.model.Agendamento;
 import com.agendamento.agendamento.model.StatusAgendamento;
 import com.agendamento.agendamento.repository.AgendamentoRepository;
+import com.agendamento.categoria.model.Categoria;
+import com.agendamento.categoria.model.StatusCategoria;
+import com.agendamento.categoria.repository.CategoriaRepository;
 import com.agendamento.cliente.model.Cliente;
 import com.agendamento.cliente.repository.ClienteRepository;
 import com.agendamento.profissional.model.Profissional;
@@ -43,6 +46,7 @@ class AgendamentoCancelamentoIntegrationTest {
     @Autowired private ProfissionalRepository profissionalRepository;
     @Autowired private ClienteRepository clienteRepository;
     @Autowired private ServicoRepository servicoRepository;
+    @Autowired private CategoriaRepository categoriaRepository;
     @Autowired private AgendamentoRepository agendamentoRepository;
 
     @Test
@@ -166,8 +170,12 @@ class AgendamentoCancelamentoIntegrationTest {
                             Long clienteId, String clienteToken) {
         Profissional profissional = profissionalRepository.findById(proId).orElseThrow();
         Cliente cliente = clienteRepository.findById(clienteId).orElseThrow();
+        Categoria categoria = categoriaRepository.findByNomeIgnoreCase("Outros")
+                .orElseGet(() -> categoriaRepository.saveAndFlush(Categoria.builder()
+                        .nome("Outros").shortDescription("Geral").imagemUrl("/imagens/categorias/outros.jpg")
+                        .status(StatusCategoria.APROVADA).build()));
         Servico servico = servicoRepository.saveAndFlush(Servico.builder().nome("Corte")
-                .categoria("Geral").duracaoMinutos(30).preco(new BigDecimal("40.00"))
+                .categoria(categoria).duracaoMinutos(30).preco(new BigDecimal("40.00"))
                 .ativo(true).profissional(profissional).build());
         Agendamento agendamento = agendamentoRepository.saveAndFlush(Agendamento.builder()
                 .cliente(cliente).profissional(profissional).servico(servico)
@@ -179,7 +187,7 @@ class AgendamentoCancelamentoIntegrationTest {
     private Sessao cadastrarProfissional() throws Exception {
         String email = email();
         String corpo = """
-                {"nome":"Profissional Teste","email":"%s","telefone":"11912345678","senha":"%s","especialidade":"Geral"}
+                {"nome":"Profissional Teste","email":"%s","telefone":"11912345678","senha":"%s"}
                 """.formatted(email, SENHA);
         MvcResult result = mvc.perform(post("/api/auth/cadastro/profissional")
                         .contentType(MediaType.APPLICATION_JSON).content(corpo))

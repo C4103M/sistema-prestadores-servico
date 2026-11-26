@@ -69,7 +69,7 @@ class PerfilIntegrationTest {
         mvc.perform(put("/api/perfil").header(HttpHeaders.AUTHORIZATION, pro.bearer())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nome":"Carlos Silva","email":"%s","telefone":"11988887777","especialidade":"Barbearia","bannerUrl":"/imagens/categorias/barbearia.webp"}
+                                {"nome":"Carlos Silva","email":"%s","telefone":"11988887777","bannerUrl":"/imagens/categorias/barbearia.webp"}
                                 """.formatted("pro-novo-" + sufixo() + "@teste.com")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nome").value("Carlos Silva"));

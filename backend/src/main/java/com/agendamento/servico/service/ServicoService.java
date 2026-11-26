@@ -50,13 +50,6 @@ public class ServicoService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
-    public List<ServicoDTO> listarTodos() {
-        return servicoRepository.findAll().stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
-    }
-
     // Garante que o serviço pertence ao profissional da rota /api/profissional/{id}
     @Transactional(readOnly = true)
     public void garantirDoProfissional(Long profissionalId, Long servicoId) {
@@ -72,13 +65,12 @@ public class ServicoService {
         Profissional profissional = profissionalRepository.findById(dto.getProfissionalId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Profissional não encontrado: " + dto.getProfissionalId()));
         Categoria categoria = categoriaService.resolverParaServico(
-                profissional.getUsuario().getId(), dto.getCategoriaId(), dto.getCategoria());
+                profissional.getUsuario().getId(), dto.getCategoriaId());
 
         Servico servico = Servico.builder()
                 .nome(dto.getNome().trim())
                 .descricao(dto.getDescricao())
-                .categoria(categoria.getNome())
-                .categoriaEntidade(categoria)
+                .categoria(categoria)
                 .duracaoMinutos(dto.getDuracaoMinutos())
                 .preco(dto.getPreco())
                 .ativo(dto.getAtivo() != null ? dto.getAtivo() : true)
@@ -93,7 +85,7 @@ public class ServicoService {
         Servico servico = servicoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Serviço não encontrado: " + id));
         Categoria categoria = categoriaService.resolverParaServico(
-                servico.getProfissional().getUsuario().getId(), dto.getCategoriaId(), dto.getCategoria());
+                servico.getProfissional().getUsuario().getId(), dto.getCategoriaId());
 
         aplicarAtualizacao(servico, dto, categoria);
 
@@ -103,8 +95,7 @@ public class ServicoService {
     private void aplicarAtualizacao(Servico servico, ServicoDTO dto, Categoria categoria) {
         servico.setNome(dto.getNome().trim());
         servico.setDescricao(dto.getDescricao());
-        servico.setCategoria(categoria.getNome());
-        servico.setCategoriaEntidade(categoria);
+        servico.setCategoria(categoria);
         servico.setDuracaoMinutos(dto.getDuracaoMinutos());
         servico.setPreco(dto.getPreco());
         if (dto.getAtivo() != null) {
@@ -131,19 +122,21 @@ public class ServicoService {
     }
 
     public ServicoDTO toDTO(Servico s) {
-        Categoria cat = s.getCategoriaEntidade();
+        Categoria cat = s.getCategoria();
         return ServicoDTO.builder()
                 .id(s.getId())
                 .nome(s.getNome())
                 .descricao(s.getDescricao())
                 .categoriaId(cat != null ? cat.getId() : null)
-                .categoria(cat != null ? cat.getNome() : s.getCategoria())
+                .categoria(cat != null ? cat.getNome() : null)
                 .categoriaStatus(cat != null ? cat.getStatus() : null)
                 .duracaoMinutos(s.getDuracaoMinutos())
                 .preco(s.getPreco())
                 .ativo(s.getAtivo())
                 .profissionalId(s.getProfissional() != null ? s.getProfissional().getId() : null)
-                .profissionalNome(s.getProfissional() != null ? s.getProfissional().getNome() : null)
+                .profissionalNome(s.getProfissional() != null && s.getProfissional().getUsuario() != null
+                        ? s.getProfissional().getUsuario().getNome()
+                        : null)
                 .build();
     }
 }

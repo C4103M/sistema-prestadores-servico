@@ -157,7 +157,7 @@ class AdminUsuarioIntegrationTest {
         MvcResult res = mvc.perform(post("/api/auth/cadastro/profissional")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nome":"%s","email":"%s","telefone":"11912345678","senha":"%s","especialidade":"Geral"}
+                                {"nome":"%s","email":"%s","telefone":"11912345678","senha":"%s"}
                                 """.formatted(nome, email, SENHA)))
                 .andExpect(status().isCreated()).andReturn();
         return sessao(res);

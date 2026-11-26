@@ -43,9 +43,9 @@ public class PerfilService {
                         .usuarioId(usuario.getId())
                         .perfilId(c.getId())
                         .papel(usuario.getPapel())
-                        .nome(c.getNome())
+                        .nome(usuario.getNome())
                         .email(usuario.getEmail())
-                        .telefone(c.getTelefone())
+                        .telefone(usuario.getTelefone())
                         .build();
             }
             case PROFISSIONAL -> {
@@ -55,10 +55,9 @@ public class PerfilService {
                         .usuarioId(usuario.getId())
                         .perfilId(p.getId())
                         .papel(usuario.getPapel())
-                        .nome(p.getNome())
+                        .nome(usuario.getNome())
                         .email(usuario.getEmail())
-                        .telefone(p.getTelefone())
-                        .especialidade(p.getEspecialidade())
+                        .telefone(usuario.getTelefone())
                         .bannerUrl(p.getBannerUrl())
                         .build();
             }
@@ -68,6 +67,7 @@ public class PerfilService {
                     .papel(usuario.getPapel())
                     .nome((usuario.getNome() != null && !usuario.getNome().isBlank()) ? usuario.getNome() : "Administrador")
                     .email(usuario.getEmail())
+                    .telefone(usuario.getTelefone())
                     .build();
         };
     }
@@ -86,25 +86,18 @@ public class PerfilService {
             throw new IllegalArgumentException("Informe o telefone.");
         }
 
-        String nome = dto.getNome().trim();
         usuario.setEmail(emailNormalizado);
-        usuario.setNome(nome);
+        usuario.setNome(dto.getNome().trim());
+        if (dto.getTelefone() != null && !dto.getTelefone().isBlank()) {
+            usuario.setTelefone(dto.getTelefone().trim());
+        } else if (usuario.getPapel() == PapelUsuario.ADMIN) {
+            usuario.setTelefone(null);
+        }
         usuarioRepository.save(usuario);
 
-        if (usuario.getPapel() == PapelUsuario.CLIENTE) {
-            Cliente c = clienteRepository.findByUsuarioId(usuarioId)
-                    .orElseThrow(() -> new RecursoNaoEncontradoException("Perfil de cliente não encontrado."));
-            c.setNome(nome);
-            c.setTelefone(dto.getTelefone().trim());
-            clienteRepository.save(c);
-        } else if (usuario.getPapel() == PapelUsuario.PROFISSIONAL) {
+        if (usuario.getPapel() == PapelUsuario.PROFISSIONAL) {
             Profissional p = profissionalRepository.findByUsuarioId(usuarioId)
                     .orElseThrow(() -> new RecursoNaoEncontradoException("Perfil de profissional não encontrado."));
-            p.setNome(nome);
-            p.setTelefone(dto.getTelefone().trim());
-            p.setEspecialidade(dto.getEspecialidade() != null && !dto.getEspecialidade().isBlank()
-                    ? dto.getEspecialidade().trim()
-                    : null);
             p.setBannerUrl(dto.getBannerUrl() != null && !dto.getBannerUrl().isBlank()
                     ? dto.getBannerUrl().trim()
                     : null);

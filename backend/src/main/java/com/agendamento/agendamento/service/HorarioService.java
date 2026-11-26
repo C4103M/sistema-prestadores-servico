@@ -55,8 +55,8 @@ public class HorarioService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Serviço não encontrado: " + servicoId));
         if (!Boolean.TRUE.equals(servico.getAtivo())
                 || !Boolean.TRUE.equals(servico.getProfissional().getUsuario().getAtivo())
-                || servico.getCategoriaEntidade() == null
-                || servico.getCategoriaEntidade().getStatus() != StatusCategoria.APROVADA) {
+                || servico.getCategoria() == null
+                || servico.getCategoria().getStatus() != StatusCategoria.APROVADA) {
             throw new IllegalArgumentException("O serviço escolhido não está ativo.");
         }
 

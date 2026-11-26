@@ -14,7 +14,7 @@ import type {
   UsuarioAdmin,
 } from '../types';
 import { EVENTO_SESSAO_EXPIRADA } from './sessao';
-import type { AuthResponse, CadastroPayload, CadastroProfissionalPayload } from './sessao';
+import type { AuthResponse, CadastroPayload } from './sessao';
 
 export interface ProblemDetailPayload {
   title?: string;
@@ -147,7 +147,6 @@ export interface AtualizarPerfilPayload {
   nome: string;
   email: string;
   telefone?: string;
-  especialidade?: string;
   bannerUrl?: string;
 }
 
@@ -164,7 +163,7 @@ export const api = {
       request<AuthResponse>(() => http.post<AuthResponse>('/auth/login', { email, senha })),
     cadastrarCliente: (payload: CadastroPayload) =>
       request<AuthResponse>(() => http.post<AuthResponse>('/auth/cadastro/cliente', payload)),
-    cadastrarProfissional: (payload: CadastroProfissionalPayload) =>
+    cadastrarProfissional: (payload: CadastroPayload) =>
       request<AuthResponse>(() => http.post<AuthResponse>('/auth/cadastro/profissional', payload)),
     renovar: () => request<AuthResponse>(() => http.post<AuthResponse>('/auth/renovar')),
   },

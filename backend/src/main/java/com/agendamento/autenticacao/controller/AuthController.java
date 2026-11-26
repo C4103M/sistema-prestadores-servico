@@ -1,8 +1,7 @@
 package com.agendamento.autenticacao.controller;
 
 import com.agendamento.autenticacao.dto.AuthResponse;
-import com.agendamento.autenticacao.dto.CadastroClienteRequest;
-import com.agendamento.autenticacao.dto.CadastroProfissionalRequest;
+import com.agendamento.autenticacao.dto.CadastroRequest;
 import com.agendamento.autenticacao.dto.LoginRequest;
 import com.agendamento.autenticacao.service.AuthService;
 import com.agendamento.seguranca.UsuarioAutenticado;
@@ -39,11 +38,11 @@ public class AuthController {
     })
     @SecurityRequirements
     @PostMapping("/cadastro/cliente")
-    public ResponseEntity<AuthResponse> cadastrarCliente(@Valid @RequestBody CadastroClienteRequest dto) {
+    public ResponseEntity<AuthResponse> cadastrarCliente(@Valid @RequestBody CadastroRequest dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.cadastrarCliente(dto));
     }
 
-    @Operation(summary = "Cadastrar novo profissional", description = "Cria usuário PROFISSIONAL, perfil com especialidade e retorna token JWT.")
+    @Operation(summary = "Cadastrar novo profissional", description = "Cria usuário PROFISSIONAL, perfil de profissional e retorna token JWT.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Profissional cadastrado e autenticado"),
             @ApiResponse(responseCode = "400", description = "Campos inválidos", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
@@ -51,7 +50,7 @@ public class AuthController {
     })
     @SecurityRequirements
     @PostMapping("/cadastro/profissional")
-    public ResponseEntity<AuthResponse> cadastrarProfissional(@Valid @RequestBody CadastroProfissionalRequest dto) {
+    public ResponseEntity<AuthResponse> cadastrarProfissional(@Valid @RequestBody CadastroRequest dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.cadastrarProfissional(dto));
     }
 
