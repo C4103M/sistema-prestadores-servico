@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Check, Pencil, Plus, X, XCircle } from 'lucide-react';
+import { Check, PencilSimple, Plus, X, XCircle } from '@phosphor-icons/react';
 import type { Categoria, StatusCategoria } from '../types';
 import { PageHeader } from '../components/PageHeader';
 import { EmptyState } from '../components/EmptyState';
@@ -109,9 +109,17 @@ export function AdminCategoriasPage({
       />
 
       {aviso && (
-        <p role="status" className="flex items-center justify-between rounded-lg bg-concluido-soft px-4 py-3 text-sm font-semibold text-concluido">
-          {aviso}
-          <button type="button" className="btn btn-ghost btn-icon -my-1 -mr-2" aria-label="Fechar aviso" onClick={() => setAviso('')}>
+        <p
+          role="status"
+          className="flex items-center justify-between rounded-xl border border-concluido/25 bg-concluido-soft px-4 py-3 text-sm font-semibold text-concluido"
+        >
+          <span>{aviso}</span>
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon -my-1 -mr-2"
+            aria-label="Fechar aviso"
+            onClick={() => setAviso('')}
+          >
             <X className="size-4" aria-hidden />
           </button>
         </p>
@@ -119,26 +127,29 @@ export function AdminCategoriasPage({
 
       {pendentes.length > 0 && (
         <section aria-labelledby="titulo-pendentes" className="space-y-3">
-          <h2 id="titulo-pendentes" className="text-lg font-bold">
+          <h2 id="titulo-pendentes" className="text-base font-bold text-ink-heading">
             Aguardando aprovação ({pendentes.length})
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
             {pendentes.map((cat) => (
-              <div key={cat.id} className="painel flex flex-col gap-4 border-faltou/30 bg-faltou-soft/25 p-4 sm:flex-row sm:items-center">
+              <div
+                key={cat.id}
+                className="cal-card flex flex-col gap-4 border-l-[3px] border-l-faltou p-4 sm:flex-row sm:items-center"
+              >
                 <img
                   src={cat.imagemUrl}
                   alt={cat.nome}
-                  className="h-24 w-full shrink-0 rounded-lg object-cover bg-paper sm:h-20 sm:w-28"
+                  className="h-24 w-full shrink-0 rounded-xl border border-rule bg-plate object-cover sm:h-20 sm:w-28"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-bold text-ink">{cat.nome}</h3>
-                    <span className="rounded-full bg-faltou-soft px-2 py-0.5 text-[0.6875rem] font-semibold text-faltou">
+                    <h3 className="font-bold text-ink-heading">{cat.nome}</h3>
+                    <span className="rounded-md bg-faltou-soft px-2 py-0.5 text-[11px] font-semibold text-faltou">
                       Pendente
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-muted">{cat.shortDescription}</p>
-                  <p className="mt-1 text-[0.75rem] text-faint">
+                  <p className="font-mono-num mt-1 text-[11px] text-faint">
                     Sugerida por {cat.criadoPorEmail ?? 'profissional'} · {cat.totalServicosAtivos}{' '}
                     {cat.totalServicosAtivos === 1 ? 'serviço vinculado' : 'serviços vinculados'}
                   </p>
@@ -180,33 +191,50 @@ export function AdminCategoriasPage({
               }
             />
           ) : (
-            <div className="painel overflow-x-auto">
+            <div className="cal-card overflow-x-auto">
               <table className="w-full min-w-[660px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-rule text-xs text-muted">
-                    <th scope="col" className="px-5 py-3 font-semibold">Categoria</th>
-                    <th scope="col" className="px-3 py-3 font-semibold">Serviços ativos</th>
-                    <th scope="col" className="px-3 py-3 font-semibold">Status</th>
-                    <th scope="col" className="px-5 py-3 text-right font-semibold">Ações</th>
+                  <tr className="border-b border-rule font-mono-num text-[11px] uppercase tracking-wider text-faint">
+                    <th scope="col" className="px-5 py-3.5 font-medium">
+                      Categoria
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 font-medium">
+                      Serviços ativos
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 font-medium">
+                      Status
+                    </th>
+                    <th scope="col" className="px-5 py-3.5 text-right font-medium">
+                      Ações
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-rule">
                   {categorias.map((c) => {
                     const badge = BADGE_STATUS[c.status];
                     return (
-                      <tr key={c.id} className={`transition-colors duration-150 ${editando === c.id ? 'bg-marker-soft' : 'hover:bg-paper'}`}>
+                      <tr
+                        key={c.id}
+                        className={`transition-colors duration-150 ${
+                          editando === c.id ? 'bg-surface-soft' : 'hover:bg-surface-soft/70'
+                        }`}
+                      >
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
-                            <img src={c.imagemUrl} alt={c.nome} className="size-12 shrink-0 rounded-lg object-cover bg-paper" />
+                            <img
+                              src={c.imagemUrl}
+                              alt={c.nome}
+                              className="size-12 shrink-0 rounded-xl border border-rule bg-plate object-cover"
+                            />
                             <div className="min-w-0">
-                              <p className="font-semibold">{c.nome}</p>
+                              <p className="font-semibold text-ink-heading">{c.nome}</p>
                               <p className="line-clamp-2 text-xs text-muted">{c.shortDescription}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="tabular px-3 py-3.5 text-muted">{c.totalServicosAtivos}</td>
+                        <td className="font-mono-num px-3 py-3.5 text-muted">{c.totalServicosAtivos}</td>
                         <td className="px-3 py-3.5">
-                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${badge.classe}`}>
+                          <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold ${badge.classe}`}>
                             {badge.rotulo}
                           </span>
                         </td>
@@ -218,13 +246,15 @@ export function AdminCategoriasPage({
                               aria-label={`Editar ${c.nome}`}
                               onClick={() => abrirEdicao(c)}
                             >
-                              <Pencil className="size-4" aria-hidden />
+                              <PencilSimple className="size-4" aria-hidden />
                             </button>
                             {c.status !== 'APROVADA' && (
                               <button
                                 type="button"
                                 className="btn btn-secondary btn-sm"
-                                onClick={() => void tratarAcao(() => onAprovar(c.id), `Categoria “${c.nome}” aprovada.`)}
+                                onClick={() =>
+                                  void tratarAcao(() => onAprovar(c.id), `Categoria “${c.nome}” aprovada.`)
+                                }
                               >
                                 Aprovar
                               </button>
@@ -233,7 +263,9 @@ export function AdminCategoriasPage({
                               <button
                                 type="button"
                                 className="btn btn-secondary btn-sm hover:!text-danger"
-                                onClick={() => void tratarAcao(() => onRejeitar(c.id), `Categoria “${c.nome}” rejeitada.`)}
+                                onClick={() =>
+                                  void tratarAcao(() => onRejeitar(c.id), `Categoria “${c.nome}” rejeitada.`)
+                                }
                               >
                                 Rejeitar
                               </button>
@@ -250,18 +282,30 @@ export function AdminCategoriasPage({
         </section>
 
         {editando !== null && (
-          <form onSubmit={(e) => void salvar(e)} noValidate className="painel xl:sticky xl:top-10" aria-labelledby="titulo-form-categoria">
+          <form
+            onSubmit={(e) => void salvar(e)}
+            noValidate
+            className="cal-card xl:sticky xl:top-10"
+            aria-labelledby="titulo-form-categoria"
+          >
             <div className="flex items-center justify-between border-b border-rule px-5 py-4">
-              <h2 id="titulo-form-categoria" className="text-lg font-bold">
+              <h2 id="titulo-form-categoria" className="text-lg font-bold text-ink-heading">
                 {editando === 'nova' ? 'Nova categoria' : 'Editar categoria'}
               </h2>
-              <button type="button" className="btn btn-ghost btn-icon -mr-2" aria-label="Fechar formulário" onClick={() => setEditando(null)}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon -mr-2"
+                aria-label="Fechar formulário"
+                onClick={() => setEditando(null)}
+              >
                 <X className="size-4" aria-hidden />
               </button>
             </div>
             <div className="space-y-4 p-5">
               <div>
-                <label className="label" htmlFor="cat-nome">Nome</label>
+                <label className="label" htmlFor="cat-nome">
+                  Nome
+                </label>
                 <input
                   id="cat-nome"
                   className="input"
@@ -274,7 +318,9 @@ export function AdminCategoriasPage({
                 {erros.nome && <p className="erro-campo">{erros.nome}</p>}
               </div>
               <div>
-                <label className="label" htmlFor="cat-desc">Descrição curta</label>
+                <label className="label" htmlFor="cat-desc">
+                  Descrição curta
+                </label>
                 <textarea
                   id="cat-desc"
                   className="input"
@@ -293,9 +339,13 @@ export function AdminCategoriasPage({
                 erro={erros.imagemUrl}
                 onChange={(url) => setForm({ ...form, imagemUrl: url })}
               />
-              {erros.geral && <p className="erro-campo" role="alert">{erros.geral}</p>}
+              {erros.geral && (
+                <p className="erro-campo" role="alert">
+                  {erros.geral}
+                </p>
+              )}
             </div>
-            <div className="flex justify-end gap-2.5 rounded-b-xl border-t border-rule bg-paper px-5 py-4">
+            <div className="flex justify-end gap-2.5 rounded-b-2xl border-t border-rule bg-surface-soft px-5 py-4">
               <button type="button" className="btn btn-secondary" onClick={() => setEditando(null)}>
                 Cancelar
               </button>

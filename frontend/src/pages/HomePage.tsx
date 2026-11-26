@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarCheck2, ChevronDown, Clock, RefreshCw, Search, X } from 'lucide-react';
+import { ArrowsClockwise, CalendarCheck, CaretDown, Clock, MagnifyingGlass, X } from '@phosphor-icons/react';
 import type { Agendamento, Categoria, Disponibilidade, Profissional, Servico } from '../types';
 import { PageHeader } from '../components/PageHeader';
 import { EmptyState } from '../components/EmptyState';
+import { SkeletonHorarios } from '../components/Skeleton';
 import { ApiError, api, formatLocalDateTime } from '../services/api';
 import { dataCurta, duracao, hora, moeda } from '../services/formato';
 import { faixasDoDia, type Horario } from '../services/horarios';
@@ -22,7 +23,7 @@ interface HomePageProps {
 }
 
 const normalizar = (s: string) =>
-  s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 export function HomePage({
   clienteId,
@@ -48,7 +49,7 @@ export function HomePage({
   };
 
   const ativos = servicos.filter((s) => s.ativo);
-  const categorias = [
+  const categoriasFallback = [
     'Todas',
     ...Array.from(
       new Set([
@@ -80,34 +81,37 @@ export function HomePage({
   const linhaServico = (s: Servico, comProfissional: boolean) => {
     const ativo = s.id === selecionadoId;
     return (
-                  <li key={s.id} className={`transition-colors duration-150 ${ativo ? 'bg-marker-soft' : ''}`}>
-                    <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-muted">
-                          {comProfissional ? `${s.categoria} · ${s.profissionalNome}` : s.categoria}
-                        </p>
-                        <h2 className="mt-0.5 font-semibold text-ink">{s.nome}</h2>
-                        <p className="mt-1 line-clamp-1 text-sm text-muted">{s.descricao}</p>
-                      </div>
-                      <div className="flex items-center justify-between gap-6 sm:justify-end">
-                        <div className="sm:text-right">
-                          <p className="tabular text-[0.9375rem] font-bold">{moeda(s.preco)}</p>
-                          <p className="flex items-center gap-1 text-xs text-muted sm:justify-end">
-                            <Clock className="size-3.5" aria-hidden />
-                            {duracao(s.duracaoMinutos)}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setSelecionadoId(s.id)}
-                          aria-pressed={ativo}
-                          className={`btn btn-sm w-32 ${ativo ? 'btn-primary' : 'btn-secondary'}`}
-                        >
-                          {ativo ? 'Selecionado' : 'Ver horários'}
-                        </button>
-                      </div>
-                    </div>
-                  </li>
+      <li
+        key={s.id}
+        className={`transition-colors duration-150 ${ativo ? 'bg-surface-soft' : 'hover:bg-surface-soft/70'}`}
+      >
+        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium text-muted">
+              {comProfissional ? `${s.categoria} · ${s.profissionalNome}` : s.categoria}
+            </p>
+            <h3 className="mt-0.5 text-[0.9375rem] font-semibold text-ink-heading">{s.nome}</h3>
+            {s.descricao && <p className="mt-1 line-clamp-1 text-xs text-muted">{s.descricao}</p>}
+          </div>
+          <div className="flex items-center justify-between gap-5 sm:justify-end">
+            <div className="sm:text-right">
+              <p className="font-mono-num text-[0.9375rem] font-bold text-ink-heading">{moeda(s.preco)}</p>
+              <p className="font-mono-num flex items-center gap-1 text-xs text-muted sm:justify-end">
+                <Clock className="size-3.5" aria-hidden />
+                {duracao(s.duracaoMinutos)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelecionadoId(s.id)}
+              aria-pressed={ativo}
+              className={`btn btn-sm w-32 ${ativo ? 'btn-primary' : 'btn-secondary'}`}
+            >
+              {ativo ? 'Selecionado' : 'Ver horários'}
+            </button>
+          </div>
+        </div>
+      </li>
     );
   };
 
@@ -119,27 +123,25 @@ export function HomePage({
     <div className="space-y-8">
       <PageHeader
         titulo="Encontre um serviço ou profissional"
-        descricao="Os horários mostrados já descontam a agenda do profissional: o que aparece aqui está livre de verdade."
+        descricao="Os horários mostrados já descontam a agenda do profissional em tempo real."
+        acoes={
+          categoria !== 'Todas' ? (
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCategoria('Todas')}>
+              Mostrar todas as categorias
+            </button>
+          ) : undefined
+        }
       />
 
       {categoriasPublicas.length > 0 && (
         <section aria-labelledby="titulo-categorias-destaque" className="space-y-3">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="titulo-categorias-destaque" className="text-lg font-bold">
+            <h2 id="titulo-categorias-destaque" className="text-base font-semibold text-ink-heading">
               Categorias disponíveis
             </h2>
-            {categoria !== 'Todas' && (
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setCategoria('Todas')}
-              >
-                Mostrar todas
-              </button>
-            )}
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {categoriasPublicas.map((cat) => {
+            {categoriasPublicas.map((cat, idx) => {
               const ativa = categoria === cat.nome;
               return (
                 <button
@@ -147,29 +149,31 @@ export function HomePage({
                   type="button"
                   aria-pressed={ativa}
                   onClick={() => setCategoria(ativa ? 'Todas' : cat.nome)}
-                  className={`group painel flex flex-col overflow-hidden text-left transition-all duration-150 ${
-                    ativa
-                      ? 'border-marker bg-marker-soft/35 ring-2 ring-marker/25'
-                      : 'hover:border-rule-strong hover:bg-paper/40'
+                  style={{ ['--i' as string]: idx }}
+                  className={`group cal-card anim-in flex flex-col overflow-hidden text-left transition-all duration-150 cursor-pointer ${
+                    ativa ? 'ring-2 ring-ink' : 'hover:border-rule-strong'
                   }`}
                 >
-                  <div className="relative h-32 w-full overflow-hidden bg-paper">
+                  <div className="relative h-32 w-full overflow-hidden bg-plate">
                     <img
                       src={cat.imagemUrl}
                       alt={cat.nome}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
+                    {ativa && (
+                      <span className="absolute top-2.5 right-2.5 rounded-md bg-accent px-2 py-0.5 text-[11px] font-semibold text-white">
+                        Ativa
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-1 flex-col p-4">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-bold text-ink">{cat.nome}</h3>
-                      <span className="tabular shrink-0 rounded-full bg-ink-soft px-2 py-0.5 text-[0.6875rem] font-semibold text-muted">
+                      <h3 className="font-semibold text-[0.9375rem] text-ink-heading">{cat.nome}</h3>
+                      <span className="font-mono-num shrink-0 rounded-md bg-plate px-2 py-0.5 text-[11px] font-medium text-muted">
                         {cat.totalServicosAtivos === 1 ? '1 serviço' : `${cat.totalServicosAtivos} serviços`}
                       </span>
                     </div>
-                    <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted">
-                      {cat.shortDescription}
-                    </p>
+                    <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted">{cat.shortDescription}</p>
                   </div>
                 </button>
               );
@@ -178,64 +182,84 @@ export function HomePage({
         </section>
       )}
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-        <section aria-label="Busca" className="min-w-0 space-y-5">
-          <div className="space-y-3">
-            <div role="radiogroup" aria-label="Buscar por" className="inline-grid grid-cols-2 rounded-lg bg-ink-soft p-1">
-              {([
-                ['servico', 'Serviço'],
-                ['profissional', 'Profissional'],
-              ] as const).map(([valor, rotulo]) => (
-                <button
-                  key={valor}
-                  type="button"
-                  role="radio"
-                  aria-checked={modo === valor}
-                  onClick={() => trocarModo(valor)}
-                  className={`h-8 rounded-md px-4 text-[0.8125rem] font-semibold transition-colors duration-150 ${
-                    modo === valor ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink'
-                  }`}
-                >
-                  {rotulo}
-                </button>
-              ))}
-            </div>
-            <label htmlFor="busca" className="sr-only">
-              {modo === 'servico' ? 'Buscar serviço' : 'Buscar profissional'}
-            </label>
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-faint" aria-hidden />
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+        <section aria-label="Busca" className="min-w-0 space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <MagnifyingGlass
+                className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-faint"
+                aria-hidden
+              />
+              <label htmlFor="busca" className="sr-only">
+                {modo === 'servico' ? 'Buscar serviço' : 'Buscar profissional'}
+              </label>
               <input
                 id="busca"
                 type="search"
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                placeholder={modo === 'servico' ? 'Nome do serviço, ex.: corte, limpeza de pele' : 'Nome ou especialidade, ex.: Beatriz, elétrica'}
-                className="input h-12 pl-11 text-[0.9375rem]"
+                placeholder={
+                  modo === 'servico'
+                    ? 'Nome do serviço, ex.: corte, limpeza de pele'
+                    : 'Nome ou especialidade, ex.: Beatriz, elétrica'
+                }
+                className="input h-11 pl-10"
               />
             </div>
+
+            <div role="radiogroup" aria-label="Buscar por" className="cal-well inline-grid shrink-0 grid-cols-2 rounded-xl p-1">
+              {([
+                ['servico', 'Serviço'],
+                ['profissional', 'Profissional'],
+              ] as const).map(([valor, rotulo]) => {
+                const ativo = modo === valor;
+                return (
+                  <button
+                    key={valor}
+                    type="button"
+                    role="radio"
+                    aria-checked={ativo}
+                    onClick={() => trocarModo(valor)}
+                    className={`h-9 rounded-lg px-4 text-xs font-semibold transition-all cursor-pointer ${
+                      ativo ? 'cal-raised text-ink-heading' : 'text-muted hover:text-ink-heading'
+                    }`}
+                  >
+                    {rotulo}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {categoriasPublicas.length === 0 && categoriasFallback.length > 1 && (
             <div role="tablist" aria-label="Categorias" className="flex gap-2 overflow-x-auto pt-1 pb-1">
-              {categorias.map((c) => (
+              {categoriasFallback.map((c) => (
                 <button
                   key={c}
                   type="button"
                   role="tab"
                   aria-selected={categoria === c}
                   onClick={() => setCategoria(c)}
-                  className={`h-8 shrink-0 rounded-full border px-3.5 text-[0.8125rem] font-semibold transition-colors duration-150 ${
-                    categoria === c ? 'border-ink bg-ink text-white' : 'border-rule-strong bg-surface text-muted hover:border-ink hover:text-ink'
+                  className={`h-8 shrink-0 rounded-lg border px-3.5 text-xs font-semibold transition-colors cursor-pointer ${
+                    categoria === c
+                      ? 'border-ink bg-ink text-on-ink'
+                      : 'border-rule bg-surface text-muted hover:border-rule-strong hover:text-ink-heading'
                   }`}
                 >
                   {c}
                 </button>
               ))}
             </div>
-          </div>
+          )}
 
-          <p className="text-sm font-semibold text-muted tabular-nums" aria-live="polite">
+          <p className="font-mono-num text-xs font-medium text-muted" aria-live="polite">
             {modo === 'servico'
-              ? filtrados.length === 1 ? '1 serviço encontrado' : `${filtrados.length} serviços encontrados`
-              : profissionais.length === 1 ? '1 profissional encontrado' : `${profissionais.length} profissionais encontrados`}
+              ? filtrados.length === 1
+                ? '1 serviço encontrado'
+                : `${filtrados.length} serviços encontrados`
+              : profissionais.length === 1
+                ? '1 profissional encontrado'
+                : `${profissionais.length} profissionais encontrados`}
           </p>
 
           {(modo === 'servico' ? filtrados.length : profissionais.length) === 0 ? (
@@ -260,7 +284,7 @@ export function HomePage({
               }
             />
           ) : modo === 'servico' ? (
-            <ul className="painel divide-y divide-rule overflow-hidden">
+            <ul className="cal-card divide-y divide-rule overflow-hidden">
               {filtrados.map((s) => linhaServico(s, true))}
             </ul>
           ) : (
@@ -268,25 +292,29 @@ export function HomePage({
               {profissionais.map((p) => {
                 const aberto = profissionalAbertoId === p.id;
                 return (
-                  <li key={p.id} className="painel overflow-hidden">
+                  <li key={p.id} className="cal-card overflow-hidden">
                     <button
                       type="button"
                       aria-expanded={aberto}
                       aria-controls={`servicos-prof-${p.id}`}
                       onClick={() => setProfissionalAbertoId(aberto ? null : p.id)}
-                      className="flex w-full items-center gap-4 p-4 text-left transition-colors duration-150 hover:bg-paper sm:p-5"
+                      className="flex w-full items-center gap-4 p-4 text-left transition-colors hover:bg-surface-soft sm:p-5 cursor-pointer"
                     >
-                      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-marker-soft text-sm font-bold text-marker-2">
-                        {p.nome.split(' ').map((n) => n[0]).slice(0, 2).join('')}
+                      <span className="grid size-10 shrink-0 place-items-center rounded-[10px] bg-plate text-xs font-bold text-ink-heading">
+                        {p.nome
+                          .split(' ')
+                          .map((n) => n[0])
+                          .slice(0, 2)
+                          .join('')}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block font-semibold">{p.nome}</span>
-                        <span className="block text-sm text-muted">
+                        <span className="block font-semibold text-ink-heading">{p.nome}</span>
+                        <span className="block text-xs text-muted">
                           {p.especialidade} · {p.servicos.length === 1 ? '1 serviço' : `${p.servicos.length} serviços`}
                         </span>
                       </span>
-                      <ChevronDown
-                        className={`size-5 shrink-0 text-muted transition-transform duration-150 ${aberto ? 'rotate-180' : ''}`}
+                      <CaretDown
+                        className={`size-4 shrink-0 text-muted transition-transform duration-150 ${aberto ? 'rotate-180' : ''}`}
                         aria-hidden
                       />
                     </button>
@@ -302,7 +330,7 @@ export function HomePage({
           )}
         </section>
 
-        <aside className="lg:sticky lg:top-12" aria-label="Agendamento">
+        <aside className="lg:sticky lg:top-24" aria-label="Agendamento">
           {selecionado ? (
             <PainelAgendamento
               key={selecionado.id}
@@ -315,19 +343,26 @@ export function HomePage({
               onVerAgendamentos={onVerAgendamentos}
             />
           ) : (
-            <div className="painel p-6">
-              <h2 className="font-semibold">Escolha um serviço</h2>
+            <div className="cal-card p-6">
+              <h2 className="text-base font-bold text-ink-heading">Escolha um serviço</h2>
               <p className="mt-1 text-sm text-muted">
-                Selecione “Ver horários” em um serviço para ver os próximos dias livres do profissional.
+                Selecione “Ver horários” em qualquer serviço para visualizar os dias e horários disponíveis.
               </p>
               {proximo && (
                 <div className="comprovante mt-5 p-4">
-                  <p className="text-xs font-semibold text-muted">Seu próximo horário</p>
-                  <p className="mt-1.5 font-sans font-bold">{proximo.servicoNome}</p>
-                  <p className="tabular mt-0.5 text-xs text-muted">
-                    {dataCurta(proximo.dataHoraInicio)} às {hora(proximo.dataHoraInicio)} com {proximo.profissionalNome}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-muted">Seu próximo horário</span>
+                    <span className="size-1.5 rounded-full bg-accent" aria-hidden />
+                  </div>
+                  <p className="mt-1.5 font-bold text-ink-heading">{proximo.servicoNome}</p>
+                  <p className="font-mono-num mt-0.5 text-xs text-muted">
+                    {dataCurta(proximo.dataHoraInicio)} às {hora(proximo.dataHoraInicio)} · {proximo.profissionalNome}
                   </p>
-                  <button type="button" className="btn btn-ghost btn-sm mt-3 -ml-3 font-sans" onClick={onVerAgendamentos}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm mt-3 w-full"
+                    onClick={onVerAgendamentos}
+                  >
                     Ver meus agendamentos
                   </button>
                 </div>
@@ -474,33 +509,35 @@ function PainelAgendamento({
 
   if (confirmado) {
     return (
-      <div className="painel p-6" role="status">
-        <span className="grid size-10 place-items-center rounded-full bg-concluido-soft text-concluido">
-          <CalendarCheck2 className="size-5" strokeWidth={2.25} aria-hidden />
+      <div className="cal-card p-6 anim-in" role="status">
+        <span className="grid size-10 place-items-center rounded-full bg-toy-soft text-toy-ink">
+          <CalendarCheck className="size-5" weight="bold" aria-hidden />
         </span>
-        <h2 className="mt-4 text-lg font-bold">Horário marcado</h2>
+        <h2 className="mt-4 text-lg font-bold text-ink-heading">Horário marcado</h2>
         <div className="comprovante mt-4 text-sm">
           <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-2 text-xs">
-            <span className="font-semibold text-muted">Agendamento #{String(confirmado.id).slice(-4)}</span>
-            <span className="font-semibold text-concluido">Confirmado</span>
+            <span className="font-mono-num font-semibold text-muted">
+              Agendamento #{String(confirmado.id).slice(-4)}
+            </span>
+            <span className="font-semibold text-toy-ink">Confirmado</span>
           </div>
-          <dl className="tabular picote grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 px-4 py-3">
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 px-4 py-3 picote">
             <dt className="text-muted">Serviço</dt>
-            <dd className="text-right font-semibold">{confirmado.servicoNome}</dd>
+            <dd className="text-right font-semibold text-ink-heading">{confirmado.servicoNome}</dd>
             <dt className="text-muted">Com</dt>
-            <dd className="text-right font-semibold">{confirmado.profissionalNome}</dd>
+            <dd className="text-right font-semibold text-ink-heading">{confirmado.profissionalNome}</dd>
             <dt className="text-muted">Quando</dt>
-            <dd className="text-right font-semibold">
+            <dd className="font-mono-num text-right font-semibold text-ink-heading">
               {dataCurta(confirmado.dataHoraInicio)}, {hora(confirmado.dataHoraInicio)}–{hora(confirmado.dataHoraFim)}
             </dd>
           </dl>
           <div className="picote flex items-baseline justify-between px-4 py-3">
             <span className="text-xs text-muted">Preço garantido</span>
-            <span className="font-bold">Total {moeda(confirmado.preco)}</span>
+            <span className="font-mono-num font-bold text-ink-heading">Total {moeda(confirmado.preco)}</span>
           </div>
         </div>
-        <div className="mt-6 flex flex-wrap gap-2.5">
-          <button type="button" className="btn btn-primary" onClick={onVerAgendamentos}>
+        <div className="mt-5 flex flex-wrap gap-2.5">
+          <button type="button" className="btn btn-primary flex-1" onClick={onVerAgendamentos}>
             Ver meus agendamentos
           </button>
           <button type="button" className="btn btn-secondary" onClick={onFechar}>
@@ -512,12 +549,12 @@ function PainelAgendamento({
   }
 
   return (
-    <div className="painel overflow-hidden">
+    <div className="cal-card overflow-hidden">
       <div className="flex items-start justify-between gap-3 border-b border-rule p-5">
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-muted">{servico.profissionalNome}</p>
-          <h2 className="text-lg font-bold">{servico.nome}</h2>
-          <p className="tabular mt-0.5 text-xs text-muted">
+          <p className="text-xs font-medium text-muted">{servico.profissionalNome}</p>
+          <h2 className="mt-0.5 text-lg font-bold text-ink-heading">{servico.nome}</h2>
+          <p className="font-mono-num mt-0.5 text-xs text-muted">
             {duracao(servico.duracaoMinutos)} · {moeda(servico.preco)}
           </p>
         </div>
@@ -528,14 +565,12 @@ function PainelAgendamento({
 
       <div className="space-y-5 p-5">
         {slotsPorDia === null && carregandoHorarios ? (
-          <p role="status" className="rounded-lg bg-paper p-4 text-sm text-muted">
-            Buscando horários livres…
-          </p>
+          <SkeletonHorarios />
         ) : slotsPorDia === null && erroHorarios ? (
-          <div role="alert" className="space-y-3 rounded-lg border border-danger/25 bg-faltou-soft p-4 text-sm text-danger">
+          <div role="alert" className="space-y-3 rounded-xl border border-danger/25 bg-danger-soft p-4 text-sm text-danger">
             <p className="font-semibold">{erroHorarios}</p>
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => void carregarHorarios(true)}>
-              <RefreshCw className="size-3.5" aria-hidden />
+              <ArrowsClockwise className="size-3.5" aria-hidden />
               Tentar novamente
             </button>
           </div>
@@ -559,18 +594,21 @@ function PainelAgendamento({
                         setEscolhido(null);
                         setErro('');
                       }}
-                      className={`flex h-14 flex-col items-center justify-center rounded-lg border text-xs transition-colors duration-150 ${
+                      className={`relative flex h-14 flex-col items-center justify-center rounded-lg text-xs transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 ${
                         ativo
-                          ? 'border-ink bg-ink text-white'
+                          ? 'bg-ink font-semibold text-on-ink'
                           : sem
-                            ? 'border-transparent text-faint line-through decoration-faint/60'
-                            : 'border-transparent text-ink hover:bg-ink-soft'
+                            ? 'bg-transparent text-faint'
+                            : 'bg-slot text-ink hover:opacity-85'
                       }`}
                     >
-                      <span className={ativo ? 'text-white/80' : 'text-muted'}>
+                      <span className="text-[10px] opacity-80">
                         {i === 0 ? 'Hoje' : d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
                       </span>
-                      <span className="tabular text-base font-bold">{d.getDate()}</span>
+                      <span className="font-mono-num text-sm font-bold">{d.getDate()}</span>
+                      {!sem && !ativo && (
+                        <span className="absolute bottom-1 size-1 rounded-full bg-toy" aria-hidden />
+                      )}
                     </button>
                   );
                 })}
@@ -580,7 +618,7 @@ function PainelAgendamento({
             <fieldset>
               <legend className="label">Horários livres</legend>
               {livres.length === 0 ? (
-                <p className="rounded-lg bg-paper p-4 text-sm text-muted">
+                <p className="rounded-xl bg-plate p-4 text-sm text-muted">
                   {atende
                     ? 'A agenda deste dia já está cheia. Escolha outro dia.'
                     : `${servico.profissionalNome} não atende neste dia.`}
@@ -590,7 +628,7 @@ function PainelAgendamento({
                   {grupos.map((g) => (
                     <div key={g.rotulo}>
                       <p className="mb-1.5 text-xs font-semibold text-muted">{g.rotulo}</p>
-                      <div className="grid grid-cols-4 gap-1.5">
+                      <div className="grid grid-cols-3 gap-1.5">
                         {g.itens.map((h) => {
                           const ativo = escolhido?.inicio.getTime() === h.inicio.getTime();
                           return (
@@ -602,12 +640,16 @@ function PainelAgendamento({
                                 setEscolhido(h);
                                 setErro('');
                               }}
-                              className={`tabular h-9 rounded-md border text-sm font-semibold transition-colors duration-150 ${
+                              className={`font-mono-num flex h-9 items-center justify-center gap-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
                                 ativo
-                                  ? 'border-marker bg-marker text-white'
-                                  : 'border-rule bg-surface text-ink hover:border-ink'
+                                  ? 'border-ink bg-ink text-on-ink'
+                                  : 'border-rule bg-surface text-ink-heading hover:border-rule-strong'
                               }`}
                             >
+                              <span
+                                className={`size-1.5 rounded-full ${ativo ? 'bg-accent' : 'bg-toy'}`}
+                                aria-hidden
+                              />
                               {hora(h.inicio)}
                             </button>
                           );
@@ -632,26 +674,31 @@ function PainelAgendamento({
         )}
       </div>
 
-      <div className="border-t border-rule bg-paper p-5">
+      <div className="border-t border-rule bg-surface-soft p-5">
         {escolhido ? (
-          <dl className="tabular mb-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 px-4 py-3 text-sm">
+          <dl className="mb-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
             <dt className="text-muted">Quando</dt>
-            <dd className="text-right font-semibold">
+            <dd className="font-mono-num text-right font-semibold text-ink-heading">
               {dataCurta(escolhido.inicio)}, {hora(escolhido.inicio)}–{hora(escolhido.fim)}
             </dd>
-            <dt className="picote col-span-2 mt-2 pt-2 sr-only">Total</dt>
+            <dt className="sr-only">Total</dt>
             <dd className="picote col-span-2 mt-2 flex items-baseline justify-between pt-2">
               <span className="text-xs text-muted">Preço garantido</span>
-              <span className="font-bold">Total {moeda(servico.preco)}</span>
+              <span className="font-mono-num font-bold text-ink-heading">Total {moeda(servico.preco)}</span>
             </dd>
           </dl>
         ) : (
-          <p className="mb-5 text-sm text-muted">Escolha um horário para ver o resumo.</p>
+          <p className="mb-4 text-sm text-muted">Escolha um horário para ver o resumo.</p>
         )}
-        <button type="button" className="btn btn-primary w-full" disabled={!escolhido || enviando} onClick={() => void confirmar()}>
+        <button
+          type="button"
+          className="btn btn-primary w-full"
+          disabled={!escolhido || enviando}
+          onClick={() => void confirmar()}
+        >
           {enviando ? 'Confirmando…' : 'Confirmar agendamento'}
         </button>
-        <p className="mt-2 text-center text-xs text-muted">O valor fica garantido mesmo se o preço mudar depois.</p>
+        <p className="mt-2.5 text-center text-xs text-faint">O valor fica garantido mesmo se o preço mudar depois.</p>
       </div>
     </div>
   );

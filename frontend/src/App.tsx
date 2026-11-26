@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { RefreshCw, X } from 'lucide-react';
+import { ArrowsClockwise, X } from '@phosphor-icons/react';
 import { AppShell, NAV } from './components/AppShell';
+import { SkeletonAreaLogada } from './components/Skeleton';
 import { InicioPage } from './pages/InicioPage';
 import { LoginPage } from './pages/LoginPage';
 import { CadastroPage } from './pages/CadastroPage';
@@ -320,13 +321,13 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
       {erroApi && (
         <div
           role="alert"
-          className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-danger/25 bg-faltou-soft px-4 py-3 text-sm font-semibold text-danger"
+          className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-danger/25 bg-danger-soft px-4 py-3 text-sm font-semibold text-danger"
         >
           <span>{erroApi}</span>
           <div className="flex items-center gap-2">
             {!carregado && (
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => void carregarDados()}>
-                <RefreshCw className="size-3.5" aria-hidden />
+                <ArrowsClockwise className="size-3.5" aria-hidden />
                 Tentar novamente
               </button>
             )}
@@ -343,9 +344,7 @@ function AreaLogada({ sessao, tela }: { sessao: Sessao; tela: Tela }) {
       )}
 
       {carregando && !carregado ? (
-        <div role="status" className="painel p-8 text-center text-sm font-medium text-muted">
-          Carregando dados do servidor…
-        </div>
+        <SkeletonAreaLogada area={area} />
       ) : (
         <>
           {tela === 'cliente/buscar' && (

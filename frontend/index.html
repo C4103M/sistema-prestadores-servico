@@ -4,8 +4,20 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AgendeFácil · Agendamento para prestadores de serviço</title>
-    <meta name="theme-color" content="#F7F2EA" />
+    <title>Encaixe · Agendamento para prestadores de serviço</title>
+    <meta
+      name="description"
+      content="Encaixe: agendamento sem conflito de horários para clientes e prestadores de serviço."
+    />
+    <meta name="theme-color" content="#FFFFFF" />
+    <script>
+      try {
+        if (localStorage.getItem('encaixe_tema') === 'dark') {
+          document.documentElement.classList.add('dark');
+          document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0F0F0F');
+        }
+      } catch {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

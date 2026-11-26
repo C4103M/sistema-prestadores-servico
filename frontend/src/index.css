@@ -1,70 +1,181 @@
-@import '@fontsource-variable/plus-jakarta-sans';
+@import '@fontsource-variable/outfit';
+@import '@fontsource-variable/jetbrains-mono';
 @import 'tailwindcss';
 
 /*
-  AgendeFácil — visual de ferramenta de trabalho: superfícies brancas sobre um
-  cinza quente, texto em azul-marinho, um verde-petróleo para a ação e o
-  horário escolhido. Uma família tipográfica, bordas finas e sombras discretas.
+  Encaixe — Editorial Utilitário inspirado em cal.com/pt-BR:
+  Base monocromática de alto contraste (#FFFFFF / #F9FAFB / #F3F4F6 / #242424),
+  bordas hairline 1px, luz especular superior e micro-sinais pontuais (#22C55E / #CC4510).
 */
 @theme {
-  --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Outfit Variable', 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
 
-  --color-ink: #16213a;
-  --color-ink-2: #2a3654;
-  --color-ink-soft: #e4e6ea;
-  --color-paper: #ebecef;
+  --color-canvas: #ffffff;
   --color-surface: #ffffff;
-  --color-rule: #e6e7eb;
-  --color-rule-strong: #d2d5dc;
-  --color-muted: #5a6274;
-  --color-faint: #8b91a0;
+  --color-surface-soft: #f9fafb;
+  --color-surface-raised: #ffffff;
+  --color-paper: #f9fafb;
+  --color-plate: #f3f4f6;
+  --color-well: #e5e7eb;
+  --color-slot: #dee1e6;
 
-  /* destaque: ação principal, horário escolhido, item ativo e o "agora" */
-  --color-marker: #0f766e;
-  --color-marker-2: #0b5f58;
-  --color-marker-soft: #e3f3f1;
+  --color-ink: #242424;
+  --color-ink-heading: #111111;
+  --color-ink-body: #374151;
+  --color-ink-soft: #f3f4f6;
+  --color-muted: #5f6570;
+  --color-faint: #858993;
+  --color-on-ink: #ffffff;
 
-  --color-agendado: #2952c4;
-  --color-agendado-soft: #e8eefc;
-  --color-concluido: #17734a;
-  --color-concluido-soft: #e3f3ea;
-  --color-cancelado: #5a6274;
-  --color-cancelado-soft: #eef0f3;
-  --color-faltou: #a4490d;
-  --color-faltou-soft: #fcefe3;
-  --color-danger: #b42318;
-  --color-danger-soft: #fdecea;
+  --color-rule: #e5e7eb;
+  --color-rule-strong: #d1d5db;
+
+  /* Acento principal monocromático + micro-sinais pontuais (laranja e verde toy) */
+  --color-marker: #242424;
+  --color-marker-2: #111111;
+  --color-marker-soft: #f3f4f6;
+  --color-live: #16c47f;
+  --color-toy: #16c47f;
+  --color-toy-ink: #0a7a4d;
+  --color-toy-soft: #e6faf1;
+  --color-accent: #f25c24;
+  --color-accent-soft: #fff1eb;
+
+  --color-agendado: #1d4ed8;
+  --color-agendado-soft: #eff6ff;
+  --color-concluido: #007956;
+  --color-concluido-soft: #ecfdf5;
+  --color-cancelado: #676b75;
+  --color-cancelado-soft: #f3f4f6;
+  --color-faltou: #b45309;
+  --color-faltou-soft: #fffbeb;
+  --color-danger: #e40014;
+  --color-danger-soft: #fef2f2;
+}
+
+:root {
+  --hairline: rgba(15, 35, 75, 0.07);
+  --nav-bg: rgba(244, 244, 244, 0.72);
+  --nav-ring: rgba(15, 35, 75, 0.08);
+  --address-bg: rgba(15, 35, 75, 0.06);
+
+  --btn-primary-bg: #242424;
+  --btn-primary-hover: #363636;
+  --btn-primary-fg: #ffffff;
+  --btn-primary-shadow: 0 1px 2px rgba(36, 36, 36, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --btn-secondary-bg: #ffffff;
+  --btn-secondary-hover: #f9fafb;
+  --btn-secondary-shadow: 0 1px 2px rgba(15, 35, 75, 0.04), inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+
+  --shadow-window: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 1px 2px rgba(0, 0, 0, 0.06), 0 24px 64px -8px rgba(15, 30, 50, 0.22);
+  --shadow-raised: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(15, 35, 75, 0.07), 0 1px 2px rgba(15, 35, 75, 0.04);
+  --shadow-well: inset 0 1px 3px rgba(15, 35, 75, 0.14), inset 0 0 0 1px rgba(15, 35, 75, 0.05), 0 1px 0 #ffffff;
+  --shadow-lift: 0 0 0 1px rgba(15, 35, 75, 0.06), 0 1px 2px rgba(15, 35, 75, 0.04);
+  --shadow-float: 0 0 0 1px rgba(15, 35, 75, 0.08), 0 12px 32px -4px rgba(15, 30, 50, 0.18);
+  --shadow-plate: inset 0 0 0 1px rgba(15, 35, 75, 0.06);
+}
+
+html.dark {
+  color-scheme: dark;
+
+  --color-canvas: #0f0f0f;
+  --color-surface: #1c1c1c;
+  --color-surface-soft: #202020;
+  --color-surface-raised: #212121;
+  --color-paper: #141414;
+  --color-plate: #181818;
+  --color-well: #0a0a0a;
+  --color-slot: #303030;
+
+  --color-ink: #f2f2f2;
+  --color-ink-heading: #fafafa;
+  --color-ink-body: #d4d5d8;
+  --color-ink-soft: #262626;
+  --color-muted: #a1a1a1;
+  --color-faint: #8a8a90;
+  --color-on-ink: #111111;
+
+  --color-rule: rgba(255, 255, 255, 0.10);
+  --color-rule-strong: #2e2e2e;
+
+  --color-marker: #e5e5e5;
+  --color-marker-2: #fafafa;
+  --color-marker-soft: #262626;
+  --color-live: #22d98e;
+  --color-toy: #22d98e;
+  --color-toy-ink: #34e09b;
+  --color-toy-soft: rgba(34, 217, 142, 0.16);
+  --color-accent: #ff7038;
+  --color-accent-soft: rgba(255, 112, 56, 0.16);
+
+  --color-agendado: #60a5fa;
+  --color-agendado-soft: rgba(48, 128, 255, 0.16);
+  --color-concluido: #34d399;
+  --color-concluido-soft: rgba(0, 187, 127, 0.15);
+  --color-cancelado: #a1a1a1;
+  --color-cancelado-soft: rgba(255, 255, 255, 0.08);
+  --color-faltou: #fbbf24;
+  --color-faltou-soft: rgba(249, 156, 0, 0.16);
+  --color-danger: #ff6568;
+  --color-danger-soft: rgba(255, 101, 104, 0.15);
+
+  --hairline: rgba(255, 255, 255, 0.08);
+  --nav-bg: rgba(23, 23, 23, 0.72);
+  --nav-ring: rgba(255, 255, 255, 0.08);
+  --address-bg: rgba(255, 255, 255, 0.06);
+
+  --btn-primary-bg: #e5e5e5;
+  --btn-primary-hover: #ffffff;
+  --btn-primary-fg: #171717;
+  --btn-primary-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --btn-secondary-bg: #1c1c1c;
+  --btn-secondary-hover: #262626;
+  --btn-secondary-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  --shadow-window: 0 0 0 1px rgba(255, 255, 255, 0.10), 0 24px 64px -8px rgba(0, 0, 0, 0.72);
+  --shadow-raised: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-well: inset 0 1px 3px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-lift: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.28);
+  --shadow-float: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 14px 36px -4px rgba(0, 0, 0, 0.6);
+  --shadow-plate: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 @layer base {
   html {
+    scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
   }
   body {
-    background: var(--color-paper);
+    background: var(--color-canvas);
     color: var(--color-ink);
+    font-family: var(--font-sans);
+    transition:
+      background-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      color 200ms ease;
   }
   h1,
   h2,
   h3 {
-    letter-spacing: -0.015em;
+    letter-spacing: -0.02em;
     text-wrap: balance;
+    color: var(--color-ink-heading);
   }
   p {
     text-wrap: pretty;
   }
   ::selection {
-    background: var(--color-marker-soft);
-    color: var(--color-ink);
+    background: var(--color-ink);
+    color: var(--color-on-ink);
   }
   input,
   textarea {
-    caret-color: var(--color-marker);
+    caret-color: var(--color-ink);
   }
   :focus-visible {
-    outline: 2px solid var(--color-marker);
+    outline: 2px solid var(--color-ink);
     outline-offset: 2px;
-    border-radius: 6px;
+    border-radius: 8px;
   }
   * {
     scrollbar-width: thin;
@@ -74,11 +185,49 @@
     text-underline-offset: 3px;
   }
   dialog::backdrop {
-    background: rgb(22 33 58 / 0.4);
+    background: rgba(15, 15, 15, 0.5);
+    backdrop-filter: blur(4px);
   }
 }
 
 @layer components {
+  .cal-nav {
+    background: var(--nav-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow:
+      0 0 0 1px var(--nav-ring),
+      0 4px 20px -4px rgba(15, 35, 75, 0.06);
+  }
+
+  .cal-card,
+  .painel {
+    background: var(--color-surface);
+    border: 1px solid var(--color-rule);
+    border-radius: 16px;
+    box-shadow: var(--shadow-lift);
+  }
+
+  .cal-plate {
+    background: var(--color-plate);
+    box-shadow: var(--shadow-plate);
+  }
+
+  .cal-window {
+    background: var(--color-surface);
+    box-shadow: var(--shadow-window);
+  }
+
+  .cal-well {
+    background: var(--color-well);
+    box-shadow: var(--shadow-well);
+  }
+
+  .cal-raised {
+    background: var(--color-surface-raised);
+    box-shadow: var(--shadow-raised);
+  }
+
   .btn {
     display: inline-flex;
     align-items: center;
@@ -86,15 +235,20 @@
     gap: 0.5rem;
     height: 2.5rem;
     padding-inline: 1rem;
-    border-radius: 8px;
+    border-radius: 12px;
     border: 1px solid transparent;
     font-size: 0.875rem;
     font-weight: 600;
     white-space: nowrap;
+    cursor: pointer;
     transition:
-      background-color 150ms ease-out,
-      border-color 150ms ease-out,
-      color 150ms ease-out;
+      background-color 180ms ease-out,
+      border-color 180ms ease-out,
+      color 180ms ease-out,
+      transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn:active:not(:disabled) {
+    transform: scale(0.98);
   }
   .btn:disabled {
     cursor: not-allowed;
@@ -103,43 +257,52 @@
   .btn-sm {
     height: 2rem;
     padding-inline: 0.75rem;
+    border-radius: 9px;
     font-size: 0.8125rem;
   }
+  .btn-lg {
+    height: 3rem;
+    padding-inline: 1.5rem;
+    border-radius: 14px;
+    font-size: 0.9375rem;
+  }
   .btn-primary {
-    background: var(--color-marker);
-    color: #fff;
-    box-shadow: 0 1px 2px rgb(22 33 58 / 0.12);
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-fg);
+    box-shadow: var(--btn-primary-shadow);
   }
   .btn-primary:not(:disabled):hover {
-    background: var(--color-marker-2);
+    background: var(--btn-primary-hover);
   }
   .btn-secondary {
-    background: var(--color-surface);
+    background: var(--btn-secondary-bg);
     color: var(--color-ink);
-    border-color: var(--color-rule-strong);
-    box-shadow: 0 1px 2px rgb(22 33 58 / 0.06);
+    border-color: var(--color-rule);
+    box-shadow: var(--btn-secondary-shadow);
   }
   .btn-secondary:not(:disabled):hover {
-    border-color: var(--color-muted);
+    background: var(--btn-secondary-hover);
+    border-color: var(--color-rule-strong);
   }
   .btn-ghost {
     color: var(--color-muted);
   }
   .btn-ghost:not(:disabled):hover {
-    background: var(--color-ink-soft);
-    color: var(--color-ink);
+    background: var(--color-plate);
+    color: var(--color-ink-heading);
   }
   .btn-danger {
     background: var(--color-danger);
     color: #fff;
   }
   .btn-danger:not(:disabled):hover {
-    background: #96201a;
+    opacity: 0.9;
   }
   .btn-icon {
     width: 2rem;
     height: 2rem;
     padding: 0;
+    border-radius: 9px;
   }
 
   .label {
@@ -147,35 +310,35 @@
     margin-bottom: 0.375rem;
     font-size: 0.8125rem;
     font-weight: 600;
-    color: var(--color-ink);
+    color: var(--color-ink-heading);
   }
   .input {
     width: 100%;
-    height: 2.5rem;
-    padding-inline: 0.75rem;
-    border-radius: 8px;
-    border: 1px solid var(--color-rule-strong);
+    height: 2.625rem;
+    padding-inline: 0.875rem;
+    border-radius: 10px;
+    border: 1px solid var(--color-rule);
     background: var(--color-surface);
     font-size: 0.875rem;
-    color: var(--color-ink);
+    color: var(--color-ink-heading);
     transition:
       border-color 150ms ease-out,
       box-shadow 150ms ease-out;
   }
   textarea.input {
     height: auto;
-    padding-block: 0.5rem;
+    padding-block: 0.625rem;
   }
   .input::placeholder {
     color: var(--color-faint);
   }
   .input:hover {
-    border-color: var(--color-muted);
+    border-color: var(--color-rule-strong);
   }
   .input:focus {
     outline: none;
-    border-color: var(--color-marker);
-    box-shadow: 0 0 0 3px var(--color-marker-soft);
+    border-color: var(--color-ink);
+    box-shadow: 0 0 0 3px var(--color-plate);
   }
   .input[aria-invalid='true'] {
     border-color: var(--color-danger);
@@ -183,33 +346,112 @@
   .erro-campo {
     margin-top: 0.375rem;
     font-size: 0.8125rem;
+    font-weight: 500;
     color: var(--color-danger);
   }
 
-  .painel {
-    background: var(--color-surface);
+  /* Resumo do agendamento: bloco neutro estilo comprovante */
+  .comprovante {
+    background: var(--color-surface-soft);
     border: 1px solid var(--color-rule);
     border-radius: 12px;
-    box-shadow: 0 1px 2px rgb(22 33 58 / 0.04);
-  }
-
-  /* resumo do agendamento: bloco neutro com divisória tracejada */
-  .comprovante {
-    background: var(--color-paper);
-    border: 1px solid var(--color-rule);
-    border-radius: 10px;
   }
   .picote {
     border-top: 1px dashed var(--color-rule-strong);
   }
+
+  .skel {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-plate);
+    border: 1px solid var(--color-rule);
+  }
+  .skel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+    animation: calShimmer 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes calEnterFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes calBarGrow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes calPulseSoft {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.55;
+  }
+}
+
+@keyframes calShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.anim-in {
+  animation: calEnterFade 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+.anim-bar {
+  transform-origin: left center;
+  animation: calBarGrow 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+.pulse-dot {
+  animation: calPulseSoft 2.4s ease-in-out infinite;
 }
 
 @utility tabular {
   font-variant-numeric: tabular-nums;
 }
 
+@utility font-mono-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .btn {
+  html {
+    scroll-behavior: auto;
+  }
+  .btn,
+  body {
     transition: none;
+  }
+  .anim-in,
+  .anim-bar,
+  .pulse-dot,
+  .skel::after {
+    animation: none !important;
   }
 }

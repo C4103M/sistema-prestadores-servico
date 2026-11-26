@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import { PencilSimple, Plus, Sparkle, Trash, X } from '@phosphor-icons/react';
 import type { Agendamento, Categoria, Servico, StatusCategoria } from '../types';
 import { PageHeader } from '../components/PageHeader';
 import { EmptyState } from '../components/EmptyState';
@@ -48,7 +48,8 @@ function validar(f: Formulario, categoriasSelecionaveis: Categoria[]): Erros {
   const dur = Number(f.duracaoMinutos);
   if (!Number.isInteger(dur) || dur < 5) erros.duracaoMinutos = 'A duração mínima é 5 minutos.';
   const preco = Number(f.preco.replace(',', '.'));
-  if (f.preco.trim() === '' || Number.isNaN(preco) || preco < 0) erros.preco = 'Informe um preço igual ou maior que zero.';
+  if (f.preco.trim() === '' || Number.isNaN(preco) || preco < 0)
+    erros.preco = 'Informe um preço igual ou maior que zero.';
   return erros;
 }
 
@@ -95,10 +96,7 @@ export function ServicosPage({
     setEditando(s.id);
     setSugerindo(false);
     const catAtual = categorias.find((c) => c.id === s.categoriaId || c.nome === s.categoria);
-    const idInicial =
-      catAtual && catAtual.status !== 'REJEITADA'
-        ? String(catAtual.id)
-        : '';
+    const idInicial = catAtual && catAtual.status !== 'REJEITADA' ? String(catAtual.id) : '';
     setForm({
       categoriaId: idInicial,
       nome: s.nome,
@@ -141,7 +139,7 @@ export function ServicosPage({
       setEditando(null);
     } catch (err) {
       if (err instanceof ApiError && err.status === 400 && err.campos) {
-        setErros((atuais) => ({ ...atuais, ...err.campos } as Erros));
+        setErros((atuais) => ({ ...atuais, ...err.campos }) as Erros);
       }
     }
   };
@@ -211,9 +209,17 @@ export function ServicosPage({
       />
 
       {aviso && (
-        <p role="status" className="flex items-center justify-between rounded-lg bg-concluido-soft px-4 py-3 text-sm font-semibold text-concluido">
-          {aviso}
-          <button type="button" className="btn btn-ghost btn-icon -my-1 -mr-2" aria-label="Fechar aviso" onClick={() => setAviso('')}>
+        <p
+          role="status"
+          className="flex items-center justify-between rounded-xl border border-concluido/25 bg-concluido-soft px-4 py-3 text-sm font-semibold text-concluido"
+        >
+          <span>{aviso}</span>
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon -my-1 -mr-2"
+            aria-label="Fechar aviso"
+            onClick={() => setAviso('')}
+          >
             <X className="size-4" aria-hidden />
           </button>
         </p>
@@ -232,39 +238,59 @@ export function ServicosPage({
               }
             />
           ) : (
-            <div className="painel overflow-x-auto">
+            <div className="cal-card overflow-x-auto">
               <table className="w-full min-w-[640px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-rule text-xs text-muted">
-                    <th scope="col" className="px-5 py-3 font-semibold">Serviço</th>
-                    <th scope="col" className="px-3 py-3 font-semibold">Duração</th>
-                    <th scope="col" className="px-3 py-3 text-right font-semibold">Preço</th>
-                    <th scope="col" className="px-3 py-3 font-semibold">Situação</th>
-                    <th scope="col" className="px-5 py-3"><span className="sr-only">Ações</span></th>
+                  <tr className="border-b border-rule font-mono-num text-[11px] uppercase tracking-wider text-faint">
+                    <th scope="col" className="px-5 py-3.5 font-medium">
+                      Serviço
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 font-medium">
+                      Duração
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-right font-medium">
+                      Preço
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 font-medium">
+                      Situação
+                    </th>
+                    <th scope="col" className="px-5 py-3.5">
+                      <span className="sr-only">Ações</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-rule">
                   {meus.map((s) => {
-                    const statusCat = s.categoriaStatus && s.categoriaStatus !== 'APROVADA'
-                      ? BADGE_CATEGORIA[s.categoriaStatus]
-                      : null;
+                    const statusCat =
+                      s.categoriaStatus && s.categoriaStatus !== 'APROVADA'
+                        ? BADGE_CATEGORIA[s.categoriaStatus]
+                        : null;
                     return (
-                      <tr key={s.id} className={`transition-colors duration-150 ${editando === s.id ? 'bg-marker-soft' : 'hover:bg-paper'}`}>
+                      <tr
+                        key={s.id}
+                        className={`transition-colors duration-150 ${
+                          editando === s.id ? 'bg-surface-soft' : 'hover:bg-surface-soft/70'
+                        }`}
+                      >
                         <td className="px-5 py-3.5">
-                          <p className={`font-semibold ${s.ativo ? '' : 'text-muted line-through'}`}>{s.nome}</p>
+                          <p className={`font-semibold text-ink-heading ${s.ativo ? '' : 'text-muted line-through'}`}>
+                            {s.nome}
+                          </p>
                           <div className="mt-0.5 flex flex-wrap items-center gap-2">
                             <span className="text-xs text-muted">{s.categoria}</span>
                             {statusCat && (
-                              <span className={`rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold ${statusCat.classe}`}>
+                              <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${statusCat.classe}`}>
                                 {statusCat.rotulo}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="tabular px-3 py-3.5 text-muted">{duracao(s.duracaoMinutos)}</td>
-                        <td className="tabular px-3 py-3.5 text-right font-semibold">{moeda(s.preco)}</td>
+                        <td className="font-mono-num px-3 py-3.5 text-muted">{duracao(s.duracaoMinutos)}</td>
+                        <td className="font-mono-num px-3 py-3.5 text-right font-semibold text-ink-heading">
+                          {moeda(s.preco)}
+                        </td>
                         <td className="px-3 py-3.5">
-                          <label className="inline-flex cursor-pointer items-center gap-2">
+                          <label className="inline-flex cursor-pointer items-center gap-2.5">
                             <input
                               type="checkbox"
                               role="switch"
@@ -274,18 +300,28 @@ export function ServicosPage({
                             />
                             <span
                               aria-hidden
-                              className="relative h-6 w-11 rounded-full bg-rule-strong transition-colors duration-150 peer-checked:bg-concluido peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-marker after:absolute after:top-0.5 after:left-0.5 after:size-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform after:duration-150 peer-checked:after:translate-x-5"
+                              className="relative h-5 w-9 rounded-full bg-slot transition-colors duration-150 peer-checked:bg-toy peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-on-ink after:shadow-xs after:transition-transform after:duration-150 peer-checked:after:translate-x-4"
                             />
                             <span className="text-xs font-medium text-muted">{s.ativo ? 'Ativo' : 'Inativo'}</span>
                           </label>
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex justify-end gap-1">
-                            <button type="button" className="btn btn-ghost btn-icon" aria-label={`Editar ${s.nome}`} onClick={() => abrirEdicao(s)}>
-                              <Pencil className="size-4" aria-hidden />
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-icon"
+                              aria-label={`Editar ${s.nome}`}
+                              onClick={() => abrirEdicao(s)}
+                            >
+                              <PencilSimple className="size-4" aria-hidden />
                             </button>
-                            <button type="button" className="btn btn-ghost btn-icon hover:!text-danger" aria-label={`Excluir ${s.nome}`} onClick={() => setExcluindo(s)}>
-                              <Trash2 className="size-4" aria-hidden />
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-icon hover:!text-danger"
+                              aria-label={`Excluir ${s.nome}`}
+                              onClick={() => setExcluindo(s)}
+                            >
+                              <Trash className="size-4" aria-hidden />
                             </button>
                           </div>
                         </td>
@@ -299,19 +335,23 @@ export function ServicosPage({
 
           {minhasSugestoes.length > 0 && (
             <section aria-labelledby="titulo-minhas-categorias" className="space-y-3">
-              <h2 id="titulo-minhas-categorias" className="text-lg font-bold">
+              <h2 id="titulo-minhas-categorias" className="text-base font-bold text-ink-heading">
                 Minhas solicitações de categoria
               </h2>
               <ul className="grid gap-3 sm:grid-cols-2">
                 {minhasSugestoes.map((cat) => {
                   const badge = BADGE_CATEGORIA[cat.status];
                   return (
-                    <li key={cat.id} className="painel flex items-center gap-3 p-3">
-                      <img src={cat.imagemUrl} alt={cat.nome} className="size-14 shrink-0 rounded-lg object-cover bg-paper" />
+                    <li key={cat.id} className="cal-card flex items-center gap-3 p-3.5">
+                      <img
+                        src={cat.imagemUrl}
+                        alt={cat.nome}
+                        className="size-14 shrink-0 rounded-xl border border-rule bg-plate object-cover"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate font-semibold">{cat.nome}</p>
-                          <span className={`rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold ${badge.classe}`}>
+                          <p className="truncate font-semibold text-ink-heading">{cat.nome}</p>
+                          <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${badge.classe}`}>
                             {badge.rotulo}
                           </span>
                         </div>
@@ -326,34 +366,43 @@ export function ServicosPage({
         </section>
 
         {editando !== null && (
-          <form onSubmit={salvar} noValidate className="painel xl:sticky xl:top-10" aria-labelledby="titulo-form-servico">
+          <form onSubmit={salvar} noValidate className="cal-card xl:sticky xl:top-10" aria-labelledby="titulo-form-servico">
             <div className="flex items-center justify-between border-b border-rule px-5 py-4">
-              <h2 id="titulo-form-servico" className="text-lg font-bold">
+              <h2 id="titulo-form-servico" className="text-lg font-bold text-ink-heading">
                 {editando === 'novo' ? 'Novo serviço' : 'Editar serviço'}
               </h2>
-              <button type="button" className="btn btn-ghost btn-icon -mr-2" aria-label="Fechar formulário" onClick={() => setEditando(null)}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon -mr-2"
+                aria-label="Fechar formulário"
+                onClick={() => setEditando(null)}
+              >
                 <X className="size-4" aria-hidden />
               </button>
             </div>
             <div className="space-y-4 p-5">
               <div>
-                <label className="label" htmlFor="servico-nome">Nome</label>
+                <label className="label" htmlFor="servico-nome">
+                  Nome
+                </label>
                 <input className="input" placeholder="Ex.: Corte degradê" autoFocus {...campo('nome')} />
                 {erro('nome')}
               </div>
 
               <div>
                 <div className="mb-1.5 flex items-center justify-between gap-2">
-                  <label className="label !mb-0" htmlFor="servico-categoriaId">Categoria</label>
+                  <label className="label !mb-0" htmlFor="servico-categoriaId">
+                    Categoria
+                  </label>
                   <button
                     type="button"
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-marker-2 hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-ink-heading hover:underline cursor-pointer"
                     onClick={() => {
                       setSugerindo((s) => !s);
                       setCatErros({});
                     }}
                   >
-                    <Sparkles className="size-3.5" aria-hidden />
+                    <Sparkle className="size-3.5 text-accent" weight="fill" aria-hidden />
                     {sugerindo ? 'Fechar sugestão' : 'Sugerir nova categoria'}
                   </button>
                 </div>
@@ -361,7 +410,8 @@ export function ServicosPage({
                   <option value="">Selecione uma categoria</option>
                   {categoriasSelecionaveis.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.nome}{c.status === 'PENDENTE' ? ' (Pendente de aprovação)' : ''}
+                      {c.nome}
+                      {c.status === 'PENDENTE' ? ' (Pendente de aprovação)' : ''}
                     </option>
                   ))}
                 </select>
@@ -371,16 +421,18 @@ export function ServicosPage({
                     <p className="mt-1.5 text-xs font-medium text-danger">
                       A categoria anterior deste serviço foi rejeitada. Escolha uma nova categoria aprovada ou pendente.
                     </p>
-                )}
+                  )}
               </div>
 
               {sugerindo && (
-                <div className="space-y-3 rounded-xl border border-marker/25 bg-marker-soft/35 p-4">
-                  <p className="text-xs font-bold text-ink">
+                <div className="cal-plate space-y-3 rounded-xl p-4">
+                  <p className="text-xs font-bold text-ink-heading">
                     Sugerir categoria (fica pendente até aprovação do administrador)
                   </p>
                   <div>
-                    <label className="label" htmlFor="sugestao-cat-nome">Nome da categoria</label>
+                    <label className="label" htmlFor="sugestao-cat-nome">
+                      Nome da categoria
+                    </label>
                     <input
                       id="sugestao-cat-nome"
                       className="input"
@@ -393,7 +445,9 @@ export function ServicosPage({
                     {catErros.nome && <p className="erro-campo">{catErros.nome}</p>}
                   </div>
                   <div>
-                    <label className="label" htmlFor="sugestao-cat-desc">Descrição curta</label>
+                    <label className="label" htmlFor="sugestao-cat-desc">
+                      Descrição curta
+                    </label>
                     <input
                       id="sugestao-cat-desc"
                       className="input"
@@ -411,7 +465,11 @@ export function ServicosPage({
                     erro={catErros.imagemUrl}
                     onChange={setCatImg}
                   />
-                  {catErros.geral && <p className="erro-campo" role="alert">{catErros.geral}</p>}
+                  {catErros.geral && (
+                    <p className="erro-campo" role="alert">
+                      {catErros.geral}
+                    </p>
+                  )}
                   <div className="flex justify-end gap-2">
                     <button type="button" className="btn btn-secondary btn-sm" onClick={() => setSugerindo(false)}>
                       Cancelar
@@ -429,18 +487,31 @@ export function ServicosPage({
               )}
 
               <div>
-                <label className="label" htmlFor="servico-descricao">Descrição <span className="font-normal text-muted">(opcional)</span></label>
+                <label className="label" htmlFor="servico-descricao">
+                  Descrição <span className="font-normal text-muted">(opcional)</span>
+                </label>
                 <textarea className="input" rows={3} placeholder="O que está incluso no atendimento" {...campo('descricao')} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label" htmlFor="servico-duracaoMinutos">Duração (min)</label>
-                  <input className="input tabular" type="number" min={5} step={5} inputMode="numeric" {...campo('duracaoMinutos')} />
+                  <label className="label" htmlFor="servico-duracaoMinutos">
+                    Duração (min)
+                  </label>
+                  <input
+                    className="input font-mono-num"
+                    type="number"
+                    min={5}
+                    step={5}
+                    inputMode="numeric"
+                    {...campo('duracaoMinutos')}
+                  />
                   {erro('duracaoMinutos')}
                 </div>
                 <div>
-                  <label className="label" htmlFor="servico-preco">Preço (R$)</label>
-                  <input className="input tabular" inputMode="decimal" placeholder="0,00" {...campo('preco')} />
+                  <label className="label" htmlFor="servico-preco">
+                    Preço (R$)
+                  </label>
+                  <input className="input font-mono-num" inputMode="decimal" placeholder="0,00" {...campo('preco')} />
                   {erro('preco')}
                 </div>
               </div>
@@ -448,7 +519,7 @@ export function ServicosPage({
                 <p className="text-xs text-muted">Agendamentos já marcados mantêm o preço antigo.</p>
               )}
             </div>
-            <div className="flex justify-end gap-2.5 rounded-b-xl border-t border-rule bg-paper px-5 py-4">
+            <div className="flex justify-end gap-2.5 rounded-b-2xl border-t border-rule bg-surface-soft px-5 py-4">
               <button type="button" className="btn btn-secondary" onClick={() => setEditando(null)}>
                 Cancelar
               </button>

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { RefreshCw, X } from 'lucide-react';
+import { ArrowsClockwise, X } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { PageHeader } from '../components/PageHeader';
+import { SkeletonPerfil } from '../components/Skeleton';
 import { ApiError, api } from '../services/api';
 import type { PapelUsuario } from '../types';
 
@@ -42,7 +43,9 @@ export function PerfilPage() {
       setTelefone(p.telefone ?? '');
       setEspecialidade(p.especialidade ?? '');
     } catch (err) {
-      setErroCarga(err instanceof ApiError || err instanceof Error ? err.message : 'Não foi possível carregar seus dados.');
+      setErroCarga(
+        err instanceof ApiError || err instanceof Error ? err.message : 'Não foi possível carregar seus dados.'
+      );
     } finally {
       setCarregando(false);
     }
@@ -89,7 +92,8 @@ export function PerfilPage() {
     const encontrados: typeof errosSenha = {};
     if (!senhaAtual) encontrados.senhaAtual = 'Informe a senha atual.';
     if (!novaSenha) encontrados.novaSenha = 'Informe a nova senha.';
-    else if (novaSenha.length < 6 || novaSenha.length > 72) encontrados.novaSenha = 'A nova senha deve ter entre 6 e 72 caracteres.';
+    else if (novaSenha.length < 6 || novaSenha.length > 72)
+      encontrados.novaSenha = 'A nova senha deve ter entre 6 e 72 caracteres.';
     if (!confirmarNovaSenha) encontrados.confirmarNovaSenha = 'Confirme a nova senha.';
     else if (confirmarNovaSenha !== novaSenha) encontrados.confirmarNovaSenha = 'As senhas não conferem.';
     setErrosSenha(encontrados);
@@ -115,39 +119,44 @@ export function PerfilPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        titulo="Meus dados"
-        descricao="Atualize suas informações cadastrais ou altere sua senha de acesso."
-      />
+      <PageHeader titulo="Meus dados" descricao="Atualize suas informações cadastrais ou altere sua senha de acesso." />
 
       {carregando ? (
-        <div role="status" className="painel p-8 text-center text-sm font-medium text-muted">
-          Carregando seus dados…
-        </div>
+        <SkeletonPerfil />
       ) : erroCarga ? (
-        <div role="alert" className="painel space-y-3 border-danger/25 bg-faltou-soft p-6 text-sm text-danger">
+        <div role="alert" className="cal-card space-y-3 border-danger/25 bg-danger-soft p-6 text-sm text-danger">
           <p className="font-semibold">{erroCarga}</p>
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => void carregar()}>
-            <RefreshCw className="size-3.5" aria-hidden />
+            <ArrowsClockwise className="size-3.5" aria-hidden />
             Tentar novamente
           </button>
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-          <form onSubmit={(e) => void salvarPerfil(e)} noValidate className="painel p-6 space-y-4">
-            <h2 className="text-lg font-bold">Dados pessoais</h2>
+          <form onSubmit={(e) => void salvarPerfil(e)} noValidate className="cal-card space-y-4 p-6">
+            <h2 className="text-lg font-bold text-ink-heading">Dados pessoais</h2>
 
             {avisoPerfil && (
-              <p role="status" className="flex items-center justify-between rounded-lg bg-concluido-soft px-4 py-2.5 text-sm font-semibold text-concluido">
-                {avisoPerfil}
-                <button type="button" className="btn btn-ghost btn-icon -my-1 -mr-2" aria-label="Fechar aviso" onClick={() => setAvisoPerfil('')}>
+              <p
+                role="status"
+                className="flex items-center justify-between rounded-xl border border-concluido/25 bg-concluido-soft px-4 py-2.5 text-sm font-semibold text-concluido"
+              >
+                <span>{avisoPerfil}</span>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-icon -my-1 -mr-2"
+                  aria-label="Fechar aviso"
+                  onClick={() => setAvisoPerfil('')}
+                >
                   <X className="size-4" aria-hidden />
                 </button>
               </p>
             )}
 
             <div>
-              <label className="label" htmlFor="perfil-nome">Nome</label>
+              <label className="label" htmlFor="perfil-nome">
+                Nome
+              </label>
               <input
                 id="perfil-nome"
                 className="input"
@@ -160,7 +169,9 @@ export function PerfilPage() {
             </div>
 
             <div>
-              <label className="label" htmlFor="perfil-email">E-mail</label>
+              <label className="label" htmlFor="perfil-email">
+                E-mail
+              </label>
               <input
                 id="perfil-email"
                 className="input"
@@ -175,7 +186,9 @@ export function PerfilPage() {
 
             {papel !== 'ADMIN' && (
               <div>
-                <label className="label" htmlFor="perfil-telefone">Telefone</label>
+                <label className="label" htmlFor="perfil-telefone">
+                  Telefone
+                </label>
                 <input
                   id="perfil-telefone"
                   className="input"
@@ -205,7 +218,11 @@ export function PerfilPage() {
               </div>
             )}
 
-            {errosPerfil.geral && <p className="erro-campo" role="alert">{errosPerfil.geral}</p>}
+            {errosPerfil.geral && (
+              <p className="erro-campo" role="alert">
+                {errosPerfil.geral}
+              </p>
+            )}
 
             <div className="pt-2">
               <button type="submit" className="btn btn-primary" disabled={salvandoPerfil}>
@@ -214,20 +231,30 @@ export function PerfilPage() {
             </div>
           </form>
 
-          <form onSubmit={(e) => void alterarSenha(e)} noValidate className="painel p-6 space-y-4">
-            <h2 className="text-lg font-bold">Alterar senha</h2>
+          <form onSubmit={(e) => void alterarSenha(e)} noValidate className="cal-card space-y-4 p-6">
+            <h2 className="text-lg font-bold text-ink-heading">Alterar senha</h2>
 
             {avisoSenha && (
-              <p role="status" className="flex items-center justify-between rounded-lg bg-concluido-soft px-4 py-2.5 text-sm font-semibold text-concluido">
-                {avisoSenha}
-                <button type="button" className="btn btn-ghost btn-icon -my-1 -mr-2" aria-label="Fechar aviso" onClick={() => setAvisoSenha('')}>
+              <p
+                role="status"
+                className="flex items-center justify-between rounded-xl border border-concluido/25 bg-concluido-soft px-4 py-2.5 text-sm font-semibold text-concluido"
+              >
+                <span>{avisoSenha}</span>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-icon -my-1 -mr-2"
+                  aria-label="Fechar aviso"
+                  onClick={() => setAvisoSenha('')}
+                >
                   <X className="size-4" aria-hidden />
                 </button>
               </p>
             )}
 
             <div>
-              <label className="label" htmlFor="perfil-senha-atual">Senha atual</label>
+              <label className="label" htmlFor="perfil-senha-atual">
+                Senha atual
+              </label>
               <input
                 id="perfil-senha-atual"
                 className="input"
@@ -241,7 +268,9 @@ export function PerfilPage() {
             </div>
 
             <div>
-              <label className="label" htmlFor="perfil-nova-senha">Nova senha</label>
+              <label className="label" htmlFor="perfil-nova-senha">
+                Nova senha
+              </label>
               <input
                 id="perfil-nova-senha"
                 className="input"
@@ -256,7 +285,9 @@ export function PerfilPage() {
             </div>
 
             <div>
-              <label className="label" htmlFor="perfil-confirmar-nova-senha">Confirmar nova senha</label>
+              <label className="label" htmlFor="perfil-confirmar-nova-senha">
+                Confirmar nova senha
+              </label>
               <input
                 id="perfil-confirmar-nova-senha"
                 className="input"
@@ -270,7 +301,11 @@ export function PerfilPage() {
               {errosSenha.confirmarNovaSenha && <p className="erro-campo">{errosSenha.confirmarNovaSenha}</p>}
             </div>
 
-            {errosSenha.geral && <p className="erro-campo" role="alert">{errosSenha.geral}</p>}
+            {errosSenha.geral && (
+              <p className="erro-campo" role="alert">
+                {errosSenha.geral}
+              </p>
+            )}
 
             <div className="pt-2">
               <button type="submit" className="btn btn-primary" disabled={salvandoSenha}>

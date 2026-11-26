@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent } from 'react';
-import { ImagePlus, Loader2 } from 'lucide-react';
+import { CircleNotch, ImageSquare } from '@phosphor-icons/react';
 import { ApiError, api } from '../services/api';
 
 interface CampoImagemCategoriaProps {
@@ -33,14 +33,20 @@ export function CampoImagemCategoria({ idPrefixo, valor, erro, onChange }: Campo
 
   return (
     <div className="space-y-2.5">
-      <label className="label" htmlFor={`${idPrefixo}-imagem-url`}>Imagem da categoria</label>
+      <label className="label" htmlFor={`${idPrefixo}-imagem-url`}>
+        Imagem da categoria
+      </label>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2.5">
         <label
           htmlFor={`${idPrefixo}-imagem-arquivo`}
           className={`btn btn-secondary btn-sm cursor-pointer ${enviando ? 'pointer-events-none opacity-60' : ''}`}
         >
-          {enviando ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <ImagePlus className="size-4" aria-hidden />}
+          {enviando ? (
+            <CircleNotch className="size-4 animate-spin" aria-hidden />
+          ) : (
+            <ImageSquare className="size-4" aria-hidden />
+          )}
           {enviando ? 'Enviando…' : 'Enviar imagem do computador'}
         </label>
         <input
@@ -68,12 +74,8 @@ export function CampoImagemCategoria({ idPrefixo, valor, erro, onChange }: Campo
       />
 
       {valor.trim() && (
-        <div className="overflow-hidden rounded-lg border border-rule bg-paper">
-          <img
-            src={valor.trim()}
-            alt="Pré-visualização da categoria"
-            className="h-28 w-full object-cover"
-          />
+        <div className="overflow-hidden rounded-xl border border-rule bg-plate">
+          <img src={valor.trim()} alt="Pré-visualização da categoria" className="h-28 w-full object-cover" />
         </div>
       )}
 

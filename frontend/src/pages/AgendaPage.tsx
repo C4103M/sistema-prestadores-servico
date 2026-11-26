@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarBlank, CaretLeft, CaretRight, ListBullets } from '@phosphor-icons/react';
 import type { Agendamento, Disponibilidade, StatusAgendamento } from '../types';
 import { PageHeader } from '../components/PageHeader';
 import { StatusBadge } from '../components/StatusBadge';
@@ -14,13 +14,13 @@ interface AgendaPageProps {
   onAtualizarStatus: (id: number, status: Exclude<StatusAgendamento, 'AGENDADO'>) => void | Promise<void>;
 }
 
-const PX_POR_HORA = 72;
+const PX_POR_HORA = 76;
 
-const COR_BLOCO: Record<StatusAgendamento, string> = {
-  AGENDADO: 'border-agendado/25 bg-agendado-soft',
-  CONCLUIDO: 'border-concluido/25 bg-concluido-soft',
-  CANCELADO: 'border-dashed border-rule-strong bg-cancelado-soft opacity-75',
-  FALTOU: 'border-faltou/25 bg-faltou-soft',
+const BORDA_STATUS: Record<StatusAgendamento, string> = {
+  AGENDADO: 'border-l-accent bg-surface-soft',
+  CONCLUIDO: 'border-l-toy bg-surface-soft',
+  CANCELADO: 'border-l-faint bg-plate opacity-70',
+  FALTOU: 'border-l-faltou bg-surface-soft',
 };
 
 export function AgendaPage({ profissionalId, agendamentos, disponibilidades, onAtualizarStatus }: AgendaPageProps) {
@@ -31,6 +31,7 @@ export function AgendaPage({ profissionalId, agendamentos, disponibilidades, onA
   });
   const [agora, setAgora] = useState(() => new Date());
   const [cancelando, setCancelando] = useState<Agendamento | null>(null);
+  const [visualizacao, setVisualizacao] = useState<'timeline' | 'lista'>('timeline');
 
   useEffect(() => {
     const t = setInterval(() => setAgora(new Date()), 60_000);
@@ -68,66 +69,172 @@ export function AgendaPage({ profissionalId, agendamentos, disponibilidades, onA
   const ativos = doDia.filter((a) => a.status !== 'CANCELADO');
   const previsto = ativos.reduce((s, a) => s + a.preco, 0);
 
+  const renderAcoes = (a: Agendamento, compacto: boolean) => {
+    const jaComecou = new Date(a.dataHoraInicio) <= agora;
+    if (a.status !== 'AGENDADO') {
+      return <StatusBadge status={a.status} compacto={compacto} />;
+    }
+    return (
+      <>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm h-7 rounded-lg"
+          onClick={() => void onAtualizarStatus(a.id, 'CONCLUIDO')}
+        >
+          Concluir
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm h-7 rounded-lg"
+          disabled={!jaComecou}
+          title={jaComecou ? undefined : 'Disponível depois do horário de início'}
+          onClick={() => void onAtualizarStatus(a.id, 'FALTOU')}
+        >
+          Faltou
+        </button>
+        {!jaComecou && (
+          <button
+            type="button"
+            className={`btn btn-ghost btn-sm h-7 rounded-lg ${compacto ? 'hidden sm:inline-flex' : ''}`}
+            onClick={() => setCancelando(a)}
+          >
+            Cancelar
+          </button>
+        )}
+      </>
+    );
+  };
+
   return (
     <div className="space-y-8">
       <PageHeader
         titulo="Agenda"
         descricao="Atendimentos do dia em ordem de horário. Conclua ou registre a falta ao fim de cada um."
         acoes={
-          <div className="flex items-center gap-2.5">
-            <button type="button" className="btn btn-secondary btn-icon" onClick={() => mudarDia(-1)} aria-label="Dia anterior">
-              <ChevronLeft className="size-4" aria-hidden />
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={ehHoje}
-              onClick={() => {
-                const d = new Date();
-                d.setHours(0, 0, 0, 0);
-                setDia(d);
-              }}
-            >
-              Hoje
-            </button>
-            <button type="button" className="btn btn-secondary btn-icon" onClick={() => mudarDia(1)} aria-label="Próximo dia">
-              <ChevronRight className="size-4" aria-hidden />
-            </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <div role="radiogroup" aria-label="Formato da agenda" className="cal-well inline-grid grid-cols-2 rounded-xl p-1">
+              {([
+                ['timeline', 'Timeline', CalendarBlank],
+                ['lista', 'Lista', ListBullets],
+              ] as const).map(([valor, rotulo, Icone]) => {
+                const ativo = visualizacao === valor;
+                return (
+                  <button
+                    key={valor}
+                    type="button"
+                    role="radio"
+                    aria-checked={ativo}
+                    onClick={() => setVisualizacao(valor)}
+                    className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-all cursor-pointer ${
+                      ativo ? 'cal-raised text-ink-heading' : 'text-muted hover:text-ink-heading'
+                    }`}
+                  >
+                    <Icone className="size-3.5" aria-hidden />
+                    {rotulo}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                className="btn btn-secondary btn-icon"
+                onClick={() => mudarDia(-1)}
+                aria-label="Dia anterior"
+              >
+                <CaretLeft className="size-4" aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm h-8 px-3.5"
+                disabled={ehHoje}
+                onClick={() => {
+                  const d = new Date();
+                  d.setHours(0, 0, 0, 0);
+                  setDia(d);
+                }}
+              >
+                Hoje
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-icon"
+                onClick={() => mudarDia(1)}
+                aria-label="Próximo dia"
+              >
+                <CaretRight className="size-4" aria-hidden />
+              </button>
+            </div>
           </div>
         }
       />
 
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-lg font-bold first-letter:uppercase">{dataLonga(dia)}</h2>
-        <p className="tabular text-sm text-muted">
+        <h2 className="text-lg font-bold tracking-tight text-ink-heading first-letter:uppercase">{dataLonga(dia)}</h2>
+        <p className="font-mono-num text-xs text-muted sm:text-sm">
           {ativos.length === 1 ? '1 atendimento' : `${ativos.length} atendimentos`} · {moeda(previsto)} previstos
           {faixas.length > 0 && ` · atende ${faixas.map((f) => `${f.horaInicio}–${f.horaFim}`).join(' e ')}`}
         </p>
       </div>
 
       {faixas.length === 0 && doDia.length === 0 ? (
-        <div className="painel p-8 text-center">
-          <p className=" text-lg font-bold">Dia sem atendimento</p>
+        <div className="cal-card p-10 text-center">
+          <p className="text-lg font-bold text-ink-heading">Dia sem atendimento</p>
           <p className="mt-1 text-sm text-muted">Você não tem disponibilidade cadastrada para este dia da semana.</p>
         </div>
+      ) : visualizacao === 'lista' ? (
+        doDia.length === 0 ? (
+          <div className="cal-card p-10 text-center">
+            <p className="text-base font-bold text-ink-heading">Nenhum atendimento marcado neste dia</p>
+            <p className="mt-1 text-sm text-muted">
+              Suas faixas de atendimento estão abertas para reservas de clientes.
+            </p>
+          </div>
+        ) : (
+          <ul className="space-y-2.5">
+            {doDia.map((a) => (
+              <li
+                key={a.id}
+                className={`cal-card flex flex-col gap-3 border-l-[3px] p-4 sm:flex-row sm:items-center sm:justify-between ${BORDA_STATUS[a.status]}`}
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="font-mono-num text-xs font-bold text-ink-heading">
+                      {hora(a.dataHoraInicio)}–{hora(a.dataHoraFim)}
+                    </span>
+                    <span className="font-semibold text-ink-heading">{a.clienteNome}</span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted">
+                    {a.servicoNome} · <span className="font-mono-num font-semibold text-ink">{moeda(a.preco)}</span>
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">{renderAcoes(a, false)}</div>
+              </li>
+            ))}
+          </ul>
+        )
       ) : (
-        <div className="painel overflow-hidden">
+        <div className="cal-card overflow-hidden">
           <div className="relative" style={{ height: y(fimJanela) }}>
-            {/* Faixas de disponibilidade: o restante do dia fica no tom do papel */}
-            <div className="absolute inset-y-0 right-0 left-16 bg-paper" aria-hidden />
+            {/* Faixas de disponibilidade: fora da faixa fica no tom plate */}
+            <div className="absolute inset-y-0 right-0 left-16 bg-plate" aria-hidden />
             {faixas.map((f) => (
               <div
                 key={f.id}
                 aria-hidden
                 className="absolute right-0 left-16 bg-surface"
-                style={{ top: y(paraMinutos(f.horaInicio)), height: y(paraMinutos(f.horaFim)) - y(paraMinutos(f.horaInicio)) }}
+                style={{
+                  top: y(paraMinutos(f.horaInicio)),
+                  height: y(paraMinutos(f.horaFim)) - y(paraMinutos(f.horaInicio)),
+                }}
               />
             ))}
 
             {/* Linhas de hora */}
             {horas.map((h) => (
               <div key={h} className="absolute right-0 left-0 flex" style={{ top: y(h) }} aria-hidden>
-                <span className="tabular w-16 -translate-y-1/2 pr-3 text-right text-xs text-muted">
+                <span className="font-mono-num w-16 -translate-y-1/2 pr-3 text-right text-[11px] text-faint">
                   {h > inicioJanela && deMinutos(h)}
                 </span>
                 <span className="flex-1 border-t border-rule" />
@@ -139,69 +246,41 @@ export function AgendaPage({ profissionalId, agendamentos, disponibilidades, onA
               {doDia.map((a) => {
                 const topo = y(minutosDe(a.dataHoraInicio));
                 const altura = y(minutosDe(a.dataHoraFim)) - topo;
-                const compacto = altura < 80;
-                const jaComecou = new Date(a.dataHoraInicio) <= agora;
+                const compacto = altura < 82;
                 return (
                   <li
                     key={a.id}
-                    className={`absolute inset-x-0 overflow-hidden rounded-xl border px-3 ${COR_BLOCO[a.status]} ${
-                      compacto ? 'flex items-center gap-3 py-1' : 'py-2'
-                    }`}
-                    style={{ top: topo + 2, height: altura - 4 }}
+                    className={`absolute inset-x-0 overflow-hidden rounded-xl border border-rule border-l-[3px] px-3.5 transition-colors ${
+                      BORDA_STATUS[a.status]
+                    } ${compacto ? 'flex items-center justify-between gap-3 py-1' : 'flex flex-col justify-between py-2'}`}
+                    style={{ top: topo + 2, height: Math.max(42, altura - 4) }}
                   >
-                    <div className={`min-w-0 ${compacto ? 'flex flex-1 items-center gap-3' : ''}`}>
-                      <p className="tabular min-w-0 truncate text-sm font-bold">
-                        <span className=" text-[0.8125rem]">{hora(a.dataHoraInicio)}–{hora(a.dataHoraFim)}</span> · {a.clienteNome}
+                    <div className={`min-w-0 ${compacto ? 'flex flex-1 items-baseline gap-2.5' : ''}`}>
+                      <p className="font-mono-num min-w-0 truncate text-xs font-bold text-ink-heading">
+                        {hora(a.dataHoraInicio)}–{hora(a.dataHoraFim)}{' '}
+                        <span className="font-sans text-sm font-semibold">· {a.clienteNome}</span>
                       </p>
-                      <p className={`truncate text-xs text-muted ${compacto ? 'hidden shrink sm:block' : ''}`}>
-                        {a.servicoNome} · {moeda(a.preco)}
+                      <p className={`truncate text-xs text-muted ${compacto ? 'hidden shrink sm:block' : 'mt-0.5'}`}>
+                        {a.servicoNome} · <span className="font-mono-num">{moeda(a.preco)}</span>
                       </p>
                     </div>
-                    <div className={`flex items-center gap-1.5 ${compacto ? '' : 'mt-1.5'}`}>
-                      {a.status === 'AGENDADO' ? (
-                        <>
-                          <button
-                            type="button"
-                            className="btn btn-primary btn-sm h-7"
-                            onClick={() => void onAtualizarStatus(a.id, 'CONCLUIDO')}
-                          >
-                            Concluir
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm h-7"
-                            disabled={!jaComecou}
-                            title={jaComecou ? undefined : 'Disponível depois do horário de início'}
-                            onClick={() => void onAtualizarStatus(a.id, 'FALTOU')}
-                          >
-                            Faltou
-                          </button>
-                          {!jaComecou && (
-                            <button
-                              type="button"
-                              className={`btn btn-ghost btn-sm h-7 ${compacto ? 'hidden sm:inline-flex' : ''}`}
-                              onClick={() => setCancelando(a)}
-                            >
-                              Cancelar
-                            </button>
-                          )}
-                        </>
-                      ) : (
-                        <StatusBadge status={a.status} compacto={compacto} />
-                      )}
-                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">{renderAcoes(a, compacto)}</div>
                   </li>
                 );
               })}
             </ol>
 
-            {/* Agora: o marca-texto do dia */}
+            {/* Agora: indicador Cal.com em #CC4510 */}
             {ehHoje && minAgora >= inicioJanela && minAgora <= fimJanela && (
-              <div className="pointer-events-none absolute right-0 left-12 flex items-center" style={{ top: y(minAgora) }}>
-                <span className="tabular -translate-y-1/2 rounded bg-marker px-1.5 py-0.5 text-[0.6875rem] font-bold text-white">
+              <div
+                className="pointer-events-none absolute right-0 left-3 flex items-center"
+                style={{ top: y(minAgora) }}
+              >
+                <span className="font-mono-num -translate-y-1/2 rounded-md bg-accent px-1.5 py-0.5 text-[11px] font-bold text-white">
                   {hora(agora)}
                 </span>
-                <span className="h-0.5 flex-1 -translate-y-1/2 bg-marker" />
+                <span className="pulse-dot -ml-0.5 size-2 -translate-y-1/2 rounded-full bg-accent" />
+                <span className="h-0.5 flex-1 -translate-y-1/2 bg-accent" />
               </div>
             )}
           </div>
@@ -214,7 +293,7 @@ export function AgendaPage({ profissionalId, agendamentos, disponibilidades, onA
         rotuloConfirmar="Cancelar atendimento"
         rotuloCancelar="Manter"
         perigo
-        onConfirmar={() => cancelando ? onAtualizarStatus(cancelando.id, 'CANCELADO') : undefined}
+        onConfirmar={() => (cancelando ? onAtualizarStatus(cancelando.id, 'CANCELADO') : undefined)}
         onFechar={() => setCancelando(null)}
       >
         {cancelando && (
