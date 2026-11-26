@@ -76,9 +76,12 @@ public class DataSeeder implements ApplicationRunner {
         Categoria catEstetica = categorias.get("Estética");
         Categoria catEletrica = categorias.get("Elétrica");
 
-        Profissional carlos = criarProfissional("Carlos Silva", "Barbearia", "carlos@barbearia.com", senhaPadrao);
-        Profissional beatriz = criarProfissional("Beatriz Mendes", "Estética", "beatriz@estetica.com", senhaPadrao);
-        Profissional marcos = criarProfissional("Marcos Andrade", "Elétrica residencial", "marcos@eletrica.com", senhaPadrao);
+        Profissional carlos = criarProfissional("Carlos Silva", "Barbearia", "carlos@barbearia.com", senhaPadrao,
+                "/imagens/categorias/barbearia.webp");
+        Profissional beatriz = criarProfissional("Beatriz Mendes", "Estética", "beatriz@estetica.com", senhaPadrao,
+                "/imagens/categorias/estetica.jpg");
+        Profissional marcos = criarProfissional("Marcos Andrade", "Elétrica residencial", "marcos@eletrica.com", senhaPadrao,
+                "/imagens/categorias/eletrica.jpg");
 
         Cliente lucas = criarCliente("Lucas Pereira", "(11) 91234-5678", "lucas@email.com", senhaPadrao);
         Cliente mariana = criarCliente("Mariana Souza", "(11) 92345-6789", "mariana@email.com", senhaPadrao);
@@ -190,7 +193,8 @@ public class DataSeeder implements ApplicationRunner {
         servicoRepository.saveAll(semCategoria);
     }
 
-    private Profissional criarProfissional(String nome, String especialidade, String email, String senhaHash) {
+    private Profissional criarProfissional(String nome, String especialidade, String email, String senhaHash,
+                                           String bannerUrl) {
         Usuario u = usuarioRepository.save(Usuario.builder()
                 .email(email)
                 .senha(senhaHash)
@@ -200,6 +204,7 @@ public class DataSeeder implements ApplicationRunner {
         return profissionalRepository.save(Profissional.builder()
                 .nome(nome)
                 .especialidade(especialidade)
+                .bannerUrl(bannerUrl)
                 .usuario(u)
                 .build());
     }

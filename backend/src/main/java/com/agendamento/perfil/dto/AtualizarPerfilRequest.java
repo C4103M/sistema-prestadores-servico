@@ -28,4 +28,7 @@ public class AtualizarPerfilRequest {
 
     @Size(max = 120, message = "A especialidade deve ter no máximo 120 caracteres.")
     private String especialidade;
+
+    @Size(max = 500, message = "A URL do banner deve ter no máximo 500 caracteres.")
+    private String bannerUrl;
 }

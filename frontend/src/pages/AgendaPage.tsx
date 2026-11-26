@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
-import { CalendarBlank, CaretLeft, CaretRight, ListBullets } from '@phosphor-icons/react';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, CalendarBlank, CaretLeft, CaretRight, ListBullets } from '@phosphor-icons/react';
 import type { Agendamento, Disponibilidade, StatusAgendamento } from '../types';
 import { PageHeader } from '../components/PageHeader';
 import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { dataLonga, hora, mesmoDia, moeda } from '../services/formato';
+import { dataCurta, dataLonga, hora, mesmoDia, moeda } from '../services/formato';
 import { deMinutos, faixasDoDia, paraMinutos } from '../services/horarios';
 
 interface AgendaPageProps {
@@ -16,6 +16,8 @@ interface AgendaPageProps {
 
 const PX_POR_HORA = 76;
 
+const DIAS_SEMANA_CABECALHO = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'] as const;
+
 const BORDA_STATUS: Record<StatusAgendamento, string> = {
   AGENDADO: 'border-l-accent bg-surface-soft',
   CONCLUIDO: 'border-l-toy bg-surface-soft',
@@ -23,13 +25,27 @@ const BORDA_STATUS: Record<StatusAgendamento, string> = {
   FALTOU: 'border-l-faltou bg-surface-soft',
 };
 
+function nomeMesCapitalizado(ano: number, mes: number) {
+  const nome = new Date(ano, mes, 1).toLocaleDateString('pt-BR', { month: 'long' });
+  return nome.charAt(0).toUpperCase() + nome.slice(1);
+}
+
+function chaveDia(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export function AgendaPage({ profissionalId, agendamentos, disponibilidades, onAtualizarStatus }: AgendaPageProps) {
+  const [agora, setAgora] = useState(() => new Date());
+  const [visao, setVisao] = useState<'mes' | 'dia'>('mes');
+  const [mesAtual, setMesAtual] = useState(() => {
+    const hoje = new Date();
+    return { ano: hoje.getFullYear(), mes: hoje.getMonth() };
+  });
   const [dia, setDia] = useState(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     return d;
   });
-  const [agora, setAgora] = useState(() => new Date());
   const [cancelando, setCancelando] = useState<Agendamento | null>(null);
   const [visualizacao, setVisualizacao] = useState<'timeline' | 'lista'>('timeline');
 
@@ -38,12 +54,296 @@ export function AgendaPage({ profissionalId, agendamentos, disponibilidades, onA
     return () => clearInterval(t);
   }, []);
 
+  const abrirDia = (alvo: Date) => {
+    const d = new Date(alvo);
+    d.setHours(0, 0, 0, 0);
+    setDia(d);
+    setMesAtual({ ano: d.getFullYear(), mes: d.getMonth() });
+    setVisao('dia');
+  };
+
+  const voltarParaMes = () => {
+    setMesAtual({ ano: dia.getFullYear(), mes: dia.getMonth() });
+    setVisao('mes');
+  };
+
+  const mudarMes = (delta: number) => {
+    const proximo = new Date(mesAtual.ano, mesAtual.mes + delta, 1);
+    setMesAtual({ ano: proximo.getFullYear(), mes: proximo.getMonth() });
+  };
+
   const mudarDia = (delta: number) => {
     const d = new Date(dia);
     d.setDate(d.getDate() + delta);
     setDia(d);
   };
 
+  // Dados da visão macro mensal
+  const diasDoMes = useMemo(() => {
+    const total = new Date(mesAtual.ano, mesAtual.mes + 1, 0).getDate();
+    return Array.from({ length: total }, (_, idx) => {
+      const d = new Date(mesAtual.ano, mesAtual.mes, idx + 1);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    });
+  }, [mesAtual.ano, mesAtual.mes]);
+
+  const celulasVaziasInicio = useMemo(
+    () => new Date(mesAtual.ano, mesAtual.mes, 1).getDay(),
+    [mesAtual.ano, mesAtual.mes]
+  );
+
+  const agendamentosDoMes = useMemo(
+    () =>
+      agendamentos
+        .filter((a) => {
+          if (a.profissionalId !== profissionalId) return false;
+          const dt = new Date(a.dataHoraInicio);
+          return dt.getFullYear() === mesAtual.ano && dt.getMonth() === mesAtual.mes;
+        })
+        .sort((a, b) => a.dataHoraInicio.localeCompare(b.dataHoraInicio)),
+    [agendamentos, profissionalId, mesAtual.ano, mesAtual.mes]
+  );
+
+  const ativosDoMes = useMemo(
+    () => agendamentosDoMes.filter((a) => a.status !== 'CANCELADO'),
+    [agendamentosDoMes]
+  );
+
+  const ativosPorDiaMap = useMemo(() => {
+    const mapa = new Map<string, Agendamento[]>();
+    for (const a of ativosDoMes) {
+      const chave = chaveDia(new Date(a.dataHoraInicio));
+      const lista = mapa.get(chave);
+      if (lista) lista.push(a);
+      else mapa.set(chave, [a]);
+    }
+    return mapa;
+  }, [ativosDoMes]);
+
+  const concluidosNoMes = ativosDoMes.filter((a) => a.status === 'CONCLUIDO').length;
+  const previstoNoMes = ativosDoMes.reduce((soma, a) => soma + a.preco, 0);
+  const ehMesCorrente = mesAtual.ano === agora.getFullYear() && mesAtual.mes === agora.getMonth();
+
+  const destaquesDoMes = useMemo(() => {
+    const inicioHoje = new Date(agora);
+    inicioHoje.setHours(0, 0, 0, 0);
+    const futuros = ativosDoMes.filter((a) => new Date(a.dataHoraInicio) >= inicioHoje);
+    return (futuros.length > 0 ? futuros : ativosDoMes).slice(0, 6);
+  }, [ativosDoMes, agora]);
+
+  // =========================================================================
+  // VISÃO MACRO MENSAL (referência / — clique em um dia abre a visão diária)
+  // =========================================================================
+  if (visao === 'mes') {
+    return (
+      <div className="space-y-8">
+        <PageHeader
+          titulo="Agenda"
+          descricao="Visão mensal dos seus atendimentos. Clique em um dia para abrir a agenda detalhada."
+          acoes={
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                className="btn btn-secondary btn-icon"
+                onClick={() => mudarMes(-1)}
+                aria-label="Mês anterior"
+              >
+                <CaretLeft className="size-4" aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm h-8 px-3.5"
+                disabled={ehMesCorrente}
+                onClick={() => setMesAtual({ ano: agora.getFullYear(), mes: agora.getMonth() })}
+              >
+                Mês atual
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-icon"
+                onClick={() => mudarMes(1)}
+                aria-label="Próximo mês"
+              >
+                <CaretRight className="size-4" aria-hidden />
+              </button>
+            </div>
+          }
+        />
+
+        <section
+          aria-label="Calendário mensal de atendimentos"
+          className="cal-window overflow-hidden rounded-2xl border border-rule anim-in"
+        >
+          <div className="grid lg:grid-cols-[1fr_310px]">
+            {/* Coluna principal: calendário macro do mês */}
+            <div className="border-b border-rule p-5 sm:p-6 lg:border-r lg:border-b-0">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-base font-semibold tracking-tight text-ink-heading sm:text-lg">
+                  {nomeMesCapitalizado(mesAtual.ano, mesAtual.mes)}{' '}
+                  <span className="font-normal text-muted">{mesAtual.ano}</span>
+                </h2>
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-toy-soft px-2.5 py-0.5 text-[11px] font-semibold text-toy-ink">
+                  <span className="size-1.5 rounded-full bg-toy" aria-hidden />
+                  {ativosDoMes.length === 1
+                    ? '1 atendimento no mês'
+                    : `${ativosDoMes.length} atendimentos no mês`}
+                </span>
+              </div>
+
+              <div className="mb-1.5 grid grid-cols-7 gap-1.5 text-center text-[11px] font-medium tracking-wider text-faint">
+                {DIAS_SEMANA_CABECALHO.map((d) => (
+                  <span key={d} className="py-1">
+                    {d}
+                  </span>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-7 gap-1.5">
+                {Array.from({ length: celulasVaziasInicio }, (_, i) => (
+                  <div key={`vazio-${i}`} aria-hidden />
+                ))}
+
+                {diasDoMes.map((data) => {
+                  const faixasDia = faixasDoDia(disponibilidades, profissionalId, data);
+                  const doDiaAtivos = ativosPorDiaMap.get(chaveDia(data)) ?? [];
+                  const temDisp = faixasDia.length > 0;
+                  const qtd = doDiaAtivos.length;
+                  const ehHojeDia = mesmoDia(data, agora);
+
+                  return (
+                    <button
+                      key={chaveDia(data)}
+                      type="button"
+                      onClick={() => abrirDia(data)}
+                      aria-label={`${dataLonga(data)}, ${
+                        qtd === 1 ? '1 atendimento' : `${qtd} atendimentos`
+                      }${temDisp ? ', com horário de atendimento' : ', sem disponibilidade'}`}
+                      className={`font-mono-num relative flex h-14 flex-col items-center justify-between rounded-xl p-1.5 text-[13px] transition-all cursor-pointer sm:h-16 sm:p-2 ${
+                        ehHojeDia
+                          ? 'bg-ink font-bold text-on-ink ring-2 ring-accent/40'
+                          : qtd > 0 || temDisp
+                            ? 'bg-slot font-semibold text-ink hover:opacity-85'
+                            : 'bg-transparent font-medium text-muted opacity-50 hover:bg-surface-soft hover:opacity-80'
+                      }`}
+                    >
+                      <span className="leading-none">{data.getDate()}</span>
+
+                      <span className="flex items-center gap-1">
+                        {temDisp && (
+                          <span
+                            className="size-1.5 rounded-full bg-toy"
+                            title="Com disponibilidade"
+                            aria-hidden
+                          />
+                        )}
+                        {qtd > 0 && (
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] leading-none font-bold ${
+                              ehHojeDia
+                                ? 'bg-accent text-white'
+                                : 'bg-accent-soft text-accent'
+                            }`}
+                          >
+                            {qtd}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Coluna lateral: resumo do mês e atalhos para os dias */}
+            <aside className="flex flex-col justify-between gap-5 bg-surface-soft p-5 sm:p-6">
+              <div className="space-y-5">
+                <div>
+                  <h3 className="text-sm font-bold text-ink-heading">Resumo do mês</h3>
+                  <dl className="mt-3 grid grid-cols-2 gap-2.5">
+                    <div className="rounded-xl border border-rule bg-surface p-3">
+                      <dt className="text-[11px] font-medium text-muted">Atendimentos</dt>
+                      <dd className="font-mono-num mt-0.5 text-lg font-bold text-ink-heading">{ativosDoMes.length}</dd>
+                    </div>
+                    <div className="rounded-xl border border-rule bg-surface p-3">
+                      <dt className="text-[11px] font-medium text-muted">Concluídos</dt>
+                      <dd className="font-mono-num mt-0.5 text-lg font-bold text-toy-ink">{concluidosNoMes}</dd>
+                    </div>
+                    <div className="col-span-2 rounded-xl border border-rule bg-surface p-3">
+                      <dt className="text-[11px] font-medium text-muted">Faturamento previsto</dt>
+                      <dd className="font-mono-num mt-0.5 text-lg font-bold text-ink-heading">
+                        {moeda(previstoNoMes)}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">
+                    Atendimentos no mês
+                  </h3>
+                  {destaquesDoMes.length === 0 ? (
+                    <p className="mt-2 rounded-xl border border-rule bg-surface p-3.5 text-xs text-muted">
+                      Nenhum atendimento marcado para este mês. Clique em qualquer dia para conferir sua disponibilidade.
+                    </p>
+                  ) : (
+                    <ul className="mt-2 space-y-2">
+                      {destaquesDoMes.map((a) => (
+                        <li key={a.id}>
+                          <button
+                            type="button"
+                            onClick={() => abrirDia(new Date(a.dataHoraInicio))}
+                            className="flex w-full items-center justify-between gap-3 rounded-xl border border-rule bg-surface px-3 py-2.5 text-left transition-colors hover:border-rule-strong cursor-pointer"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-xs font-bold text-ink-heading">{a.clienteNome}</p>
+                              <p className="truncate text-[11px] text-muted">{a.servicoNome}</p>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="font-mono-num text-[11px] font-bold text-ink-heading">
+                                {hora(a.dataHoraInicio)}
+                              </p>
+                              <p className="font-mono-num text-[10px] text-muted">
+                                {dataCurta(a.dataHoraInicio)}
+                              </p>
+                            </div>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2 border-t border-rule pt-4 text-xs text-muted">
+                <div className="flex items-center gap-2">
+                  <span className="size-2 rounded-full bg-toy" aria-hidden />
+                  <span>Dia com disponibilidade configurada</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono-num inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-soft px-1 text-[10px] font-bold text-accent">
+                    2
+                  </span>
+                  <span>Quantidade de atendimentos no dia</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm mt-2 w-full"
+                  onClick={() => abrirDia(agora)}
+                >
+                  Abrir agenda de hoje
+                </button>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // VISÃO DIÁRIA DETALHADA (ao clicar no dia na visão macro)
+  // =========================================================================
   const doDia = agendamentos
     .filter((a) => a.profissionalId === profissionalId && mesmoDia(new Date(a.dataHoraInicio), dia))
     .sort((a, b) => a.dataHoraInicio.localeCompare(b.dataHoraInicio));
@@ -112,6 +412,11 @@ export function AgendaPage({ profissionalId, agendamentos, disponibilidades, onA
         descricao="Atendimentos do dia em ordem de horário. Conclua ou registre a falta ao fim de cada um."
         acoes={
           <div className="flex flex-wrap items-center gap-3">
+            <button type="button" className="btn btn-secondary btn-sm h-10 px-3.5" onClick={voltarParaMes}>
+              <ArrowLeft className="size-4" aria-hidden />
+              Voltar para o mês
+            </button>
+
             <div role="radiogroup" aria-label="Formato da agenda" className="cal-well inline-grid grid-cols-2 rounded-xl p-1">
               {([
                 ['timeline', 'Timeline', CalendarBlank],

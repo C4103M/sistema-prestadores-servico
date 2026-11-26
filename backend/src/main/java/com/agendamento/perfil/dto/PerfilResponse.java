@@ -18,4 +18,5 @@ public class PerfilResponse {
     private String email;
     private String telefone;
     private String especialidade;
+    private String bannerUrl;
 }

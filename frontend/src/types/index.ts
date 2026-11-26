@@ -47,12 +47,14 @@ export interface PerfilUsuario {
   email: string;
   telefone: string | null;
   especialidade: string | null;
+  bannerUrl?: string | null;
 }
 
 export interface Profissional {
   id: number;
   nome: string;
   especialidade: string;
+  bannerUrl?: string | null;
   email?: string;
   telefone?: string;
   servicos?: Servico[];

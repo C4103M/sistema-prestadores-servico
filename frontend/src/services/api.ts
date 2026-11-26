@@ -148,6 +148,7 @@ export interface AtualizarPerfilPayload {
   email: string;
   telefone?: string;
   especialidade?: string;
+  bannerUrl?: string;
 }
 
 export interface AlterarSenhaPayload {

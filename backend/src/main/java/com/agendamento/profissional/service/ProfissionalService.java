@@ -62,6 +62,7 @@ public class ProfissionalService {
                 .id(p.getId())
                 .nome(p.getNome())
                 .especialidade(especialidadeExibida)
+                .bannerUrl(p.getBannerUrl())
                 .servicos(servicosPublicos)
                 .build();
     }

@@ -30,6 +30,9 @@ public class Profissional {
     // US01: o cadastro do Profissional também coleta telefone (coluna anulável para não quebrar dados existentes)
     private String telefone;
 
+    @Column(name = "banner_url", length = 500)
+    private String bannerUrl;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;

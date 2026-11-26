@@ -17,5 +17,6 @@ public class ProfissionalResponse {
     private Long id;
     private String nome;
     private String especialidade;
+    private String bannerUrl;
     private List<ServicoDTO> servicos;
 }

@@ -7,9 +7,22 @@ interface CampoImagemCategoriaProps {
   valor: string;
   erro?: string;
   onChange: (novaUrl: string) => void;
+  rotulo?: string;
+  placeholder?: string;
+  textoAlt?: string;
+  permitirRemover?: boolean;
 }
 
-export function CampoImagemCategoria({ idPrefixo, valor, erro, onChange }: CampoImagemCategoriaProps) {
+export function CampoImagemCategoria({
+  idPrefixo,
+  valor,
+  erro,
+  onChange,
+  rotulo = 'Imagem da categoria',
+  placeholder = 'Ou informe a URL da imagem (ex.: /imagens/categorias/outros.jpg)',
+  textoAlt = 'Pré-visualização da categoria',
+  permitirRemover = false,
+}: CampoImagemCategoriaProps) {
   const [enviando, setEnviando] = useState(false);
   const [erroUpload, setErroUpload] = useState('');
 
@@ -34,7 +47,7 @@ export function CampoImagemCategoria({ idPrefixo, valor, erro, onChange }: Campo
   return (
     <div className="space-y-2.5">
       <label className="label" htmlFor={`${idPrefixo}-imagem-url`}>
-        Imagem da categoria
+        {rotulo}
       </label>
 
       <div className="flex flex-wrap items-center gap-2.5">
@@ -58,12 +71,24 @@ export function CampoImagemCategoria({ idPrefixo, valor, erro, onChange }: Campo
           onChange={(e) => void aoSelecionarArquivo(e)}
         />
         <span className="text-xs text-muted">JPG, PNG ou WEBP até 5 MB</span>
+        {permitirRemover && valor.trim() && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => {
+              setErroUpload('');
+              onChange('');
+            }}
+          >
+            Remover imagem
+          </button>
+        )}
       </div>
 
       <input
         id={`${idPrefixo}-imagem-url`}
         className="input"
-        placeholder="Ou informe a URL da imagem (ex.: /imagens/categorias/outros.jpg)"
+        placeholder={placeholder}
         value={valor}
         aria-invalid={mensagemErro ? true : undefined}
         aria-describedby={mensagemErro ? `${idPrefixo}-erro-imagem` : undefined}
@@ -75,7 +100,7 @@ export function CampoImagemCategoria({ idPrefixo, valor, erro, onChange }: Campo
 
       {valor.trim() && (
         <div className="overflow-hidden rounded-xl border border-rule bg-plate">
-          <img src={valor.trim()} alt="Pré-visualização da categoria" className="h-28 w-full object-cover" />
+          <img src={valor.trim()} alt={textoAlt} className="h-28 w-full object-cover" />
         </div>
       )}
 

@@ -59,6 +59,7 @@ public class PerfilService {
                         .email(usuario.getEmail())
                         .telefone(p.getTelefone())
                         .especialidade(p.getEspecialidade())
+                        .bannerUrl(p.getBannerUrl())
                         .build();
             }
             case ADMIN -> PerfilResponse.builder()
@@ -103,6 +104,9 @@ public class PerfilService {
             p.setTelefone(dto.getTelefone().trim());
             p.setEspecialidade(dto.getEspecialidade() != null && !dto.getEspecialidade().isBlank()
                     ? dto.getEspecialidade().trim()
+                    : null);
+            p.setBannerUrl(dto.getBannerUrl() != null && !dto.getBannerUrl().isBlank()
+                    ? dto.getBannerUrl().trim()
                     : null);
             profissionalRepository.save(p);
         }
